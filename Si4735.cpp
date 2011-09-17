@@ -2,6 +2,7 @@
  * Written by Ryan Owens for SparkFun Electronics
  * 5/17/11
  * Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
+ * Altered by Jon Carrier <jjcarrier@gmail.com> on 09/17/11
  *
  * This library is for use with the SparkFun Si4735 Shield
  * Released under the 'Buy Me a Beer' license
@@ -24,10 +25,9 @@ Si4735::Si4735(){
 
 void Si4735::clearRDS(void) {
 	byte i = 0;
-	for (i=0; i<64; i++) _disp[i] = ' ';
-	for (i=0; i<8; i++) _ps[i] = ' ';
-	_disp[64] = '\0';
-	_ps[8] = '\0';
+	for (i=0; i<=64; i++) _disp[i] = '\0';
+	for (i=0; i<=8; i++) _ps[i] = '\0';
+	for(i=0; i<=16; i++) _pty[i]='\0';	
 }
 
 void Si4735::begin(char mode){
@@ -150,9 +150,7 @@ void Si4735::sendCommand(char * myCommand){
 * Returns: True if tune was successful
 *			False if tune was unsuccessful
 */
-bool Si4735::tuneFrequency(int frequency){
-	clearRDS();
-	
+bool Si4735::tuneFrequency(int frequency){	
 	//Split the desired frequency into two character for use in the
 	//set frequency command.
 	char highByte = frequency >> 8;
@@ -177,7 +175,7 @@ bool Si4735::tuneFrequency(int frequency){
 	}
 	sendCommand(command, 4);
 	delay(100);
-	
+	clearRDS();
 	return true;
 }
 
@@ -236,9 +234,7 @@ int Si4735::getFrequency(bool &valid){
 	return frequency;
 }
 
-bool Si4735::seekUp(void){
-	clearRDS();
-	
+bool Si4735::seekUp(void){	
 	//Use the current mode selection to seek up.
 	switch(_mode){
 		case FM:
@@ -255,12 +251,11 @@ bool Si4735::seekUp(void){
 			break;
 	}
 	delay(1);
+	clearRDS();
 	return true;
 }
 
-bool Si4735::seekDown(void){
-	clearRDS();
-	
+bool Si4735::seekDown(void){	
 	//Use the current mode selection to seek down.
 	switch(_mode){
 		case FM:
@@ -277,7 +272,8 @@ bool Si4735::seekDown(void){
 			break;
 	}
 	delay(1);
-	return true;
+	clearRDS();
+	return true;	
 }
 
 void Si4735::readRDS(void){
@@ -298,11 +294,14 @@ void Si4735::readRDS(void){
 	//response[9] = RDSC low
 	//response[10] = RDSD high BLOCK4
 	//response[11] = RDSD low
+	byte pty;
 	byte type;
 	bool version;
 	bool tp;
 	int pi;
 	
+	pty = ((response[6]&3) << 3) | (response[7] >> 5);
+	ptystr(pty);
 	type = (response[6]>>4) & 0xF;
 	version = bitRead(response[6], 4);
 	tp = bitRead(response[6], 5);
@@ -401,9 +400,58 @@ void Si4735::readRDS(void){
 	delay(40);
 }
 
-void Si4735::getRDS(char * ps, char * radiotext) {
+void Si4735::getRDS(char * ps, char * radiotext, char * pty) {
 	strcpy(ps, _ps);
 	strcpy(radiotext, _disp);
+	strcpy(pty, _pty);
+}
+
+void Si4735::getRSQ(byte *STBLEND, byte *RSSI, byte *SNR, byte *MULT, byte *FREQOFF){	
+	//This function gets the Received Signal Quality Information
+	//STBLEND - Percent Stereo Blend [0 = Mono, 100 = Stereo]
+	//RSSI - Receive Signal Strength Indicator [0 - 127 dBuV]
+	//SNR - Signal to Noise Ratio [0 - 127 dB]
+	//MULT - Multipath [0 = No multipath, 100 = Full multipath]
+	//FREQOFF - Signed Frequency offset
+	char response [16];
+	
+	switch(_mode){
+		case FM:			
+			//The FM_RSQ_STATUS command
+			sprintf(command, "%c%c", 0x23, 0x00);
+			break;
+		case AM:
+		case SW:
+		case LW:
+			//The AM_RSQ_STATUS command
+			sprintf(command, "%c%c", 0x43, 0x00);			
+			break;
+		default:
+			break;
+	}	
+	
+	//Send the command
+	sendCommand(command, 2);
+
+	//Now read the response	
+	getResponse(response);	
+
+	//Pull the response data into their respecive fields
+	*RSSI=response[4];
+	*SNR=response[5];
+
+	if(_mode==FM){
+		*STBLEND=response[3]&63;
+		*MULT=response[6];
+		*FREQOFF=response[7];
+	}
+	else{
+		*STBLEND=0;
+		*MULT=0;
+		*FREQOFF=0;
+	}
+	
+	return;
 }
 
 void Si4735::volumeUp(void){
@@ -512,5 +560,109 @@ void Si4735::sendCommand(char * command, int length){
 	spiTransfer(0x00);  //Fill the rest of the command arguments with 0
   }
   digitalWrite(SS, HIGH);  //End the sequence
+}
+
+void Si4735::ptystr(int pty){
+	// Translate the Program Type bits to the RBDS 16-character fields
+	switch (pty){
+		case 0:
+			strcpy(_pty, "      None      ");
+			break;
+		case 1:
+			strcpy(_pty, "      News      ");
+			break;
+		case 2:
+			strcpy(_pty, "  Information   ");
+			break;
+		case 3:
+			strcpy(_pty, "     Sports     ");
+			break;
+		case 4:
+			strcpy(_pty, "      Talk      ");
+			break;
+		case 5:
+			strcpy(_pty, "      Rock      ");
+			break;
+		case 6:
+			strcpy(_pty, "  Classic Rock  ");
+			break;
+		case 7:
+			strcpy(_pty, "   Adult Hits   ");
+			break;
+		case 8:
+			strcpy(_pty, "   Soft Rock    ");
+			break;
+		case 9:
+			strcpy(_pty, "     Top 40     ");
+			break;
+		case 10:
+			strcpy(_pty, "    Country     ");
+			break;
+		case 11:
+			strcpy(_pty, "     Oldies     ");
+			break;
+		case 12:
+			strcpy(_pty, "      Soft      ");
+			break;
+		case 13:
+			strcpy(_pty, "   Nostalgia    ");
+			break;
+		case 14:
+			strcpy(_pty, "      Jazz      ");
+			break;
+		case 15:
+			strcpy(_pty, "   Classical    ");
+			break;
+		case 16:
+			strcpy(_pty, "Rhythm and Blues");
+			break;
+		case 17:
+			strcpy(_pty, "   Soft R & B   ");
+			break;
+		case 18:
+			strcpy(_pty, "Foreign Language");
+			break;
+		case 19:
+			strcpy(_pty, "Religious Music ");
+			break;
+		case 20:
+			strcpy(_pty, " Religious Talk ");
+			break;
+		case 21:
+			strcpy(_pty, "  Personality   ");
+			break;
+		case 22:
+			strcpy(_pty, "     Public     ");
+			break;
+		case 23:
+			strcpy(_pty, "    College     ");
+			break;
+		case 24:
+			strcpy(_pty, "   None 11000   ");
+			break;
+		case 25:
+			strcpy(_pty, "   None 11001   ");
+			break;
+		case 26:
+			strcpy(_pty, "   None 11010   ");
+			break;
+		case 27:
+			strcpy(_pty, "   None 11011   ");
+			break;
+		case 28:
+			strcpy(_pty, "   None 11100   ");
+			break;
+		case 29:
+			strcpy(_pty, "     Weather    ");
+			break;
+		case 30:
+			strcpy(_pty, " Emergency Test ");
+			break;
+		case 31:
+			strcpy(_pty, " ALERT! ALERT!  ");
+			break;
+	}
+	_pty[16]='\0';
+
 }
 
