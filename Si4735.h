@@ -79,9 +79,7 @@ class Si4735 : public SPIClass
 		bool tuneFrequency(int frequency);
 		/*
 		* Description:
-		*	This function currently does not work!
-		* TODO:
-		*	Make this function work.
+		*	Gets the frequency of the currently tuned station		
 		*/
 		int getFrequency(bool &valid);
 		/*
@@ -104,9 +102,23 @@ class Si4735 : public SPIClass
 		*	Make the function return true if a valid channel was found, else return false.
 		*/		
 		bool seekDown(void);
-		
+		/*
+		*  Description:
+		*	Collects the RDS information. 
+		*	This function needs to be actively called in order to see sensible information
+		*/
 		void readRDS(void);
+		/*
+		*  Description:
+		*	Pulls the RDS information from the private variable and copies them locally. 		
+		*/
 		void getRDS(char * ps, char * radiotext);
+		/*
+		*  Description:
+		*	Retreives the Received Signal Quality Parameters/Metrics.
+		*/
+		void getRSQ(byte *STBLEND, byte *RSSI, byte *SNR, byte *MULT, byte *FREQOFF);
+		/*
 		/*
 		* Description:
 		*	Increasese the volume by 1. If the maximum volume has been reached, no increase will take place.
@@ -154,6 +166,7 @@ class Si4735 : public SPIClass
 		char _disp[65]; // Radio Text
 		char _ps[9]; // Program service name
 		bool _ab; // Detect new radiotext
+		char _pty[17];	//Program Type
 		/*
 		* A variable that is assigned the current mode of the radio (AM, FM, SW or LW)
 		*/
