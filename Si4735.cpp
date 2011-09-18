@@ -300,7 +300,7 @@ void Si4735::readRDS(void){
 	bool tp;
 	int pi;
 	
-	pty = ((response[6]&3) << 3) | (response[7] >> 5);
+	pty = ((response[6]&3) << 3) | ((response[7] >> 5)&7);
 	ptystr(pty);
 	type = (response[6]>>4) & 0xF;
 	version = bitRead(response[6], 4);
@@ -562,107 +562,46 @@ void Si4735::sendCommand(char * command, int length){
   digitalWrite(SS, HIGH);  //End the sequence
 }
 
-void Si4735::ptystr(int pty){
+void Si4735::ptystr(byte pty){
 	// Translate the Program Type bits to the RBDS 16-character fields
-	switch (pty){
-		case 0:
-			strcpy(_pty, "      None      ");
-			break;
-		case 1:
-			strcpy(_pty, "      News      ");
-			break;
-		case 2:
-			strcpy(_pty, "  Information   ");
-			break;
-		case 3:
-			strcpy(_pty, "     Sports     ");
-			break;
-		case 4:
-			strcpy(_pty, "      Talk      ");
-			break;
-		case 5:
-			strcpy(_pty, "      Rock      ");
-			break;
-		case 6:
-			strcpy(_pty, "  Classic Rock  ");
-			break;
-		case 7:
-			strcpy(_pty, "   Adult Hits   ");
-			break;
-		case 8:
-			strcpy(_pty, "   Soft Rock    ");
-			break;
-		case 9:
-			strcpy(_pty, "     Top 40     ");
-			break;
-		case 10:
-			strcpy(_pty, "    Country     ");
-			break;
-		case 11:
-			strcpy(_pty, "     Oldies     ");
-			break;
-		case 12:
-			strcpy(_pty, "      Soft      ");
-			break;
-		case 13:
-			strcpy(_pty, "   Nostalgia    ");
-			break;
-		case 14:
-			strcpy(_pty, "      Jazz      ");
-			break;
-		case 15:
-			strcpy(_pty, "   Classical    ");
-			break;
-		case 16:
-			strcpy(_pty, "Rhythm and Blues");
-			break;
-		case 17:
-			strcpy(_pty, "   Soft R & B   ");
-			break;
-		case 18:
-			strcpy(_pty, "Foreign Language");
-			break;
-		case 19:
-			strcpy(_pty, "Religious Music ");
-			break;
-		case 20:
-			strcpy(_pty, " Religious Talk ");
-			break;
-		case 21:
-			strcpy(_pty, "  Personality   ");
-			break;
-		case 22:
-			strcpy(_pty, "     Public     ");
-			break;
-		case 23:
-			strcpy(_pty, "    College     ");
-			break;
-		case 24:
-			strcpy(_pty, "   None 11000   ");
-			break;
-		case 25:
-			strcpy(_pty, "   None 11001   ");
-			break;
-		case 26:
-			strcpy(_pty, "   None 11010   ");
-			break;
-		case 27:
-			strcpy(_pty, "   None 11011   ");
-			break;
-		case 28:
-			strcpy(_pty, "   None 11100   ");
-			break;
-		case 29:
-			strcpy(_pty, "     Weather    ");
-			break;
-		case 30:
-			strcpy(_pty, " Emergency Test ");
-			break;
-		case 31:
-			strcpy(_pty, " ALERT! ALERT!  ");
-			break;
+	const char* pty_LUT[32] = {	
+			"      None      ",
+			"      News      ",
+			"  Information   ",
+			"     Sports     ",
+			"      Talk      ",
+			"      Rock      ",
+			"  Classic Rock  ",
+			"   Adult Hits   ",
+			"   Soft Rock    ",
+			"     Top 40     ",
+			"    Country     ",
+			"     Oldies     ",
+			"      Soft      ",
+			"   Nostalgia    ",
+			"      Jazz      ",
+			"   Classical    ",
+			"Rhythm and Blues",
+			"   Soft R & B   ",
+			"Foreign Language",
+			"Religious Music ",
+			" Religious Talk ",
+			"  Personality   ",
+			"     Public     ",
+			"    College     ",
+			"   None 11000   ",
+			"   None 11001   ",
+			"   None 11010   ",
+			"   None 11011   ",
+			"   None 11100   ",
+			"     Weather    ",
+			" Emergency Test ",
+			" ALERT! ALERT!  "};	
+	if(pty>=0 && pty<32){
+		strcpy(_pty, pty_LUT[pty]);
 	}
-	_pty[16]='\0';
-
+	else{
+		strcpy(_pty, "      ERROR     ");
+	}
 }
 
