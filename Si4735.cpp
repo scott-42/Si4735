@@ -2,7 +2,7 @@
  * Written by Ryan Owens for SparkFun Electronics
  * 5/17/11
  * Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
- * Altered by Jon Carrier <jjcarrier@gmail.com> on 09/17/11
+ * Altered by Jon Carrier <jjcarrier@gmail.com> on 09/19/11
  *
  * This library is for use with the SparkFun Si4735 Shield
  * Released under the 'Buy Me a Beer' license
@@ -454,7 +454,7 @@ void Si4735::getRSQ(byte *STBLEND, byte *RSSI, byte *SNR, byte *MULT, byte *FREQ
 	return;
 }
 
-void Si4735::volumeUp(void){
+byte Si4735::volumeUp(void){
 	//If we're not at the maximum volume yet, increase the volume
 	if(_currentVolume < 63){
 		_currentVolume+=1;
@@ -463,10 +463,11 @@ void Si4735::volumeUp(void){
 		sendCommand(command, 6);
 		delay(10);		
 	}
+	return _currentVolume;
 }
 
-void Si4735::volumeDown(void){
-	//If we're not at the maximum volume yet, increase the volume
+byte Si4735::volumeDown(void){
+	//If we're not at the minimum volume yet, decrease the volume
 	if(_currentVolume > 0){
 		_currentVolume-=1;
 		//Set the volume to the current value.
@@ -474,15 +475,21 @@ void Si4735::volumeDown(void){
 		sendCommand(command, 6);
 		delay(10);		
 	}
+	return _currentVolume;
 }
 
-void Si4735::setVolume(byte volume) {
-	_currentVolume=volume;
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, volume);
-	sendCommand(command, 6);
+byte Si4735::setVolume(byte volume) {
+	if(value <= 63 && value >= 0){
+		_currentVolume=volume;
+		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, volume);
+		sendCommand(command, 6);
+		delay(10);		
+	}
+	return _currentVolume;
 }
 
 byte Si4735::getVolume() {
+	//Read the true value for volume from the Si4735
 	char response [16];
 	byte volume;
 	
@@ -564,7 +571,9 @@ void Si4735::sendCommand(char * command, int length){
 }
 
 void Si4735::ptystr(byte pty){
-	// Translate the Program Type bits to the RBDS 16-character fields
+	// Translate the Program Type bits to the RDS/RBDS 16-character fields
+	//Currently you need to set the pty_LUT to your locale.
+	//TODO: Add a locale variable that is set by the user (programmatically) that selects one of these
 	const char* pty_LUT[32] = {	
 			"      None      ",
 			"      News      ",
@@ -597,12 +606,46 @@ void Si4735::ptystr(byte pty){
 			"   None 11100   ",
 			"     Weather    ",
 			" Emergency Test ",
-			" ALERT! ALERT!  "};	
+			" ALERT! ALERT!  "};
+	/*	This is the European Program Type LUT	
+		const char* pty_LUT[32] = {	
+			"      None      ",
+			"      News      ",
+			"Current Affairs ",
+			"  Information   ",
+			"     Sports     ",
+			"   Education    ",
+			"     Drama      ",
+			"    Cultures    ",
+			"    Science     ",
+			" Varied Speech  ",
+			"   Pop Music    ",
+			"  Rock Music    ",
+			" Easy Listening ",
+			"Light Classics M",
+			"Serious Classics",
+			"  Other Music   ",
+			" Weather & Metr ",
+			"    Finance     ",
+			"Children's Progs",
+			" Social Affairs ",
+			"    Religion    ",
+			"    Phone In    ",
+			"Travel & Touring",
+			"Leisure & Hobby ",
+			"   Jazz Music   ",
+			" Country Music  ",
+			"  Oldies Music  ",
+			"   Folk Music   ",
+			"  Documentary   ",
+			"   Alarm Test   ",
+			" Alarm - Alarm! "};
+			*/
 	if(pty>=0 && pty<32){
 		strcpy(_pty, pty_LUT[pty]);
 	}
 	else{
-		strcpy(_pty, "      ERROR     ");
+		strcpy(_pty, "   PTY ERROR!   ");
 	}
 }
 
