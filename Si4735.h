@@ -123,14 +123,21 @@ class Si4735 : public SPIClass
 		* Description:
 		*	Increasese the volume by 1. If the maximum volume has been reached, no increase will take place.
 		*/
-		void volumeUp(void);
+		byte volumeUp(void);
 		/*
 		* Description:
 		*	Decreases the volume by 1. If the minimum volume has been reached, no decrease will take place.
 		*/
-		void volumeDown(void);
-		
-		void setVolume(byte volume);
+		byte volumeDown(void);
+		/*
+		* Description:
+		*	Sets the volume. If the volume is outside the 0-63 range, no change will take place.
+		*/
+		byte setVolume(byte volume);
+		/*
+		* Description:
+		*	Gets the volume directly from the Si4735 chip.
+		*/
 		byte getVolume();
 		/*
 		* Description:
@@ -198,7 +205,11 @@ class Si4735 : public SPIClass
 		*	The character read from the SPI bus during the transfer.
 		*/
 		char spiTransfer(char value);
-		
+		/*
+		* Description:
+		*	Clears the RDS info. This should be called whenever the station changes.
+		*	This is help avoid one station's RDS info from overlaying on another stations.
+		*/
 		void clearRDS(void);
 };
 
