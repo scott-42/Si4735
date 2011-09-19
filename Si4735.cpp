@@ -477,6 +477,7 @@ void Si4735::volumeDown(void){
 }
 
 void Si4735::setVolume(byte volume) {
+	_currentVolume=volume;
 	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, volume);
 	sendCommand(command, 6);
 }
@@ -489,7 +490,7 @@ byte Si4735::getVolume() {
 	sendCommand(command, 4);
 	
 	getResponse(response);
-	
+	//return _currentVolume;
 	return response[3];
 }
 
