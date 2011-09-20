@@ -2,6 +2,7 @@
  * Written by Ryan Owens for SparkFun Electronics
  * 5/17/11
  * Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
+ * Altered by Jon Carrier <jjcarrier@gmail.com> on 09/19/11
  *
  * This library is for use with the SparkFun Si4735 Shield
  * Released under the 'Buy Me a Beer' license
@@ -107,7 +108,7 @@ class Si4735 : public SPIClass
 		*	Collects the RDS information. 
 		*	This function needs to be actively called in order to see sensible information
 		*/
-		void readRDS(void);
+		bool readRDS(void);
 		/*
 		*  Description:
 		*	Pulls the RDS information from the private variable and copies them locally. 		
