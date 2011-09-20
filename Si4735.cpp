@@ -276,9 +276,10 @@ bool Si4735::seekDown(void){
 	return true;	
 }
 
-void Si4735::readRDS(void){
+bool Si4735::readRDS(void){
 	char status;
 	char response [16];
+	bool ps_rdy=false;
 	
 	sprintf(command, "%c%c", 0x24, 0x00);
 	sendCommand(command, 2);
@@ -341,6 +342,7 @@ void Si4735::readRDS(void){
 				_ps[addr*2] = response[10];
 			if (response[11] != '\0')
 				_ps[addr*2+1] = response[11];
+			ps_rdy=(addr==3);
 		}
 		
 		/*
@@ -398,6 +400,8 @@ void Si4735::readRDS(void){
 	}
 	
 	delay(40);
+	//This is a simple way to indicate when the ps data has been fully refreshed.
+	return ps_rdy; 
 }
 
 void Si4735::getRDS(char * ps, char * radiotext, char * pty) {
@@ -436,7 +440,7 @@ void Si4735::getRSQ(byte *STBLEND, byte *RSSI, byte *SNR, byte *MULT, byte *FREQ
 	//Now read the response	
 	getResponse(response);	
 
-	//Pull the response data into their respecive fields
+	//Pull the response data into their respective fields
 	*RSSI=response[4];
 	*SNR=response[5];
 
