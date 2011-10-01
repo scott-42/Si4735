@@ -2,7 +2,7 @@
  * Written by Ryan Owens for SparkFun Electronics
  * 5/17/11
  * Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
- * Altered by Jon Carrier <jjcarrier@gmail.com> on 09/19/11
+ * Altered by Jon Carrier <jjcarrier@gmail.com> on 09/30/11
  *
  * This library is for use with the SparkFun Si4735 Shield
  * Released under the 'Buy Me a Beer' license
@@ -19,21 +19,25 @@
 
 //This is just a constructor.
 Si4735::Si4735(){
+	_mode 	= FM;
+	_locale = NA;
+	_volume = 63;
+	_ab 	= 0;
+	_hour 	= 0;
+	_minute = 0;	
 	clearRDS();
-	_ab = 0;
 }
 
 void Si4735::clearRDS(void) {
-	byte i = 0;
-	for (i=0; i<=64; i++) _disp[i] = '\0';
-	for (i=0; i<=8; i++) _ps[i] = '\0';
-	for(i=0; i<=16; i++) _pty[i]='\0';	
+	byte i;
+	for(i=0; i<64; i++)	_disp[i]	='\0';
+	for(i=0; i<8; i++) 	_ps[i]		='\0';
+	for(i=0; i<16; i++) 	_pty[i]		='\0';
+	for(i=0; i<4; i++) 	_csign[i]	='\0';		
 }
 
 void Si4735::begin(char mode){
 	_mode = mode;
-	//Set the initial volume level.
-	_currentVolume=63;
 
 	//Start by resetting the Si4735 and configuring the comm. protocol to SPI
 	pinMode(POWER_PIN, OUTPUT);
@@ -93,7 +97,10 @@ void Si4735::begin(char mode){
 	delay(1);
 
 	//Enable RDS
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x15, 0x02, 0x00, 0x01);
+	//Only store good blocks and ones that have been corrected
+	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x15, 0x02, 0xAA, 0x01);
+	//Only store good blocks
+	//sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x15, 0x02, 0x00, 0x01);
 	sendCommand(command, 6);
 	delay(1);
 
@@ -122,7 +129,9 @@ void Si4735::begin(char mode){
 	}
 	
 }
-
+/*
+* Description: Prepares myCommand to be sent over the SPI.
+*/
 void Si4735::sendCommand(char * myCommand){
 	char tempValue=0;
 	int index=0;
@@ -145,12 +154,11 @@ void Si4735::sendCommand(char * myCommand){
 /*
 * Description: Tunes the Si4735 to a frequency
 *
-* Params: int frequency - The desired frequency in kHz
-*
-* Returns: True if tune was successful
-*			False if tune was unsuccessful
+* Params: frequency
+*			If(mode==FM) The desired frequency is in tens of kHz
+*			If(mode==AM) The desired frequency is in kHz
 */
-bool Si4735::tuneFrequency(int frequency){	
+void Si4735::tuneFrequency(word frequency){	
 	//Split the desired frequency into two character for use in the
 	//set frequency command.
 	char highByte = frequency >> 8;
@@ -176,14 +184,13 @@ bool Si4735::tuneFrequency(int frequency){
 	sendCommand(command, 4);
 	delay(100);
 	clearRDS();
-	return true;
 }
 
-int Si4735::getFrequency(bool &valid){
+word Si4735::getFrequency(bool &valid){
 	char response [16];
-	int frequency;	
-	byte upper_byte;
-	byte lower_byte;
+	word frequency;	
+	byte highByte;
+	byte lowByte;
 
 	switch(_mode){
 		case FM:			
@@ -206,35 +213,18 @@ int Si4735::getFrequency(bool &valid){
 	//Now read the response	
 	getResponse(response);	
 
-	//Convert the bytes of the response to a frequency value
-	//NOTE: the data type "char" is an 8-bit signed element
-	//Thus to preform the math properly we must reinterpret the 8-bits
-	//as an 8-bit unsigned integer value on both the lower and upper byte
-	//Please note, this is not performing the 1's or 2's complement
-	//This is litterly trying to re-represent the bits stored
-	//Example:
-	//	Suppose response[2]=char(-42)
-	// we want to re-represent the 8-bits that represent the signed value (-42)
-	// such that is becomes the unsigned value (214)
-	upper_byte=(((response[2]>>7)/(-1))<<7)+(response[2]&127);
-	lower_byte=(((response[3]>>7)/(-1))<<7)+(response[3]&127);
-	frequency = (upper_byte<<8)+lower_byte;
-	//frequency = MAKEINT(response[2], response[3]);
+	//Convert the bytes of the response to a frequency value	
+	highByte=(((response[2]>>7)/(-1))<<7)+(response[2]&127);
+	lowByte=(((response[3]>>7)/(-1))<<7)+(response[3]&127);
+	frequency = (highByte<<8)+lowByte;
 
-	//Check to see if the Si4735 is currently "busy"
-	//Bit 0 is "STCINT" which indicates Seek/Tune Complete
-	//If set (HIGH), it indicates that the Seek/Tune process has finished
-	//In other words, when set, the TUNE_STATUS frequency values are valid
-	//This is useful for us since we can determine if we are still seeking;
-	//if we are in the middle of seeking, we will set "valid" LOW to indicate
-	//that the frequency that was returned is not the final frequency and that
-	//we must re-execute getFrequency()	
+	//Check to see if the Si4735 is currently "busy"	
 	valid=(response[0]&1)==1;
 
 	return frequency;
 }
 
-bool Si4735::seekUp(void){	
+void Si4735::seekUp(void){
 	//Use the current mode selection to seek up.
 	switch(_mode){
 		case FM:
@@ -252,10 +242,9 @@ bool Si4735::seekUp(void){
 	}
 	delay(1);
 	clearRDS();
-	return true;
 }
 
-bool Si4735::seekDown(void){	
+void Si4735::seekDown(void){
 	//Use the current mode selection to seek down.
 	switch(_mode){
 		case FM:
@@ -270,10 +259,9 @@ bool Si4735::seekDown(void){
 			break;
 		default:
 			break;
-	}
+	}	
 	delay(1);
 	clearRDS();
-	return true;	
 }
 
 bool Si4735::readRDS(void){
@@ -294,22 +282,42 @@ bool Si4735::readRDS(void){
 	//response[8] = RDSC high BLOCK3
 	//response[9] = RDSC low
 	//response[10] = RDSD high BLOCK4
-	//response[11] = RDSD low
-	byte pty;
-	byte type;
-	bool version;
-	bool tp;
-	int pi;
+	//response[11] = RDSD low	
+	byte pty = ((response[6]&3) << 3) | ((response[7] >> 5)&7);
+	ptystr(pty);	
 	
-	pty = ((response[6]&3) << 3) | ((response[7] >> 5)&7);
-	ptystr(pty);
-	type = (response[6]>>4) & 0xF;
-	version = bitRead(response[6], 4);
-	tp = bitRead(response[6], 5);
+	int pi;	
+	byte type = (response[6]>>4) & 0xF;
+	bool version = bitRead(response[6], 4);
+	bool tp = bitRead(response[6], 5);
 	if (version == 0) {
 		pi = MAKEINT(response[4], response[5]);
 	} else {
 		pi = MAKEINT(response[8], response[9]);
+	}
+	if(pi>=21672){
+ 		_csign[0]='W';
+		pi-=21672;
+	}
+	else if(pi<21672 && pi>=4096){
+		_csign[0]='K';
+		pi-=4096;
+	}
+	else{
+		pi=-1;
+	}
+	if(pi>=0){ //Convert the PI to the Callsign
+		_csign[1]=char(pi/676+65);
+		_csign[2]=char((pi - 676*int(pi/676))/26+65);
+		_csign[3]=char(((pi - 676*int(pi/676))%26)+65);		
+		_csign[4]='\0';		
+	}
+	else{ //Unknown/Unsupported Callsign
+		_csign[0]='U';
+		_csign[1]='N';
+		_csign[2]='K';
+		_csign[3]='N';
+		_csign[4]='\0';
 	}
 	
 	/*
@@ -404,19 +412,15 @@ bool Si4735::readRDS(void){
 	return ps_rdy; 
 }
 
-void Si4735::getRDS(char * ps, char * radiotext, char * pty) {
-	strcpy(ps, _ps);
-	strcpy(radiotext, _disp);
-	strcpy(pty, _pty);
+void Si4735::getRDS(Station * tunedStation) {
+	strcpy(tunedStation->programService, _ps);
+	strcpy(tunedStation->radioText, _disp);	
+	strcpy(tunedStation->programType, _pty);
+	strcpy(tunedStation->callSign, _csign);		
 }
 
-void Si4735::getRSQ(byte *STBLEND, byte *RSSI, byte *SNR, byte *MULT, byte *FREQOFF){	
+void Si4735::getRSQ(Metrics * RSQ){
 	//This function gets the Received Signal Quality Information
-	//STBLEND - Percent Stereo Blend [0 = Mono, 100 = Stereo]
-	//RSSI - Receive Signal Strength Indicator [0 - 127 dBuV]
-	//SNR - Signal to Noise Ratio [0 - 127 dB]
-	//MULT - Multipath [0 = No multipath, 100 = Full multipath]
-	//FREQOFF - Signed Frequency offset
 	char response [16];
 	
 	switch(_mode){
@@ -440,69 +444,65 @@ void Si4735::getRSQ(byte *STBLEND, byte *RSSI, byte *SNR, byte *MULT, byte *FREQ
 	//Now read the response	
 	getResponse(response);	
 
-	//Pull the response data into their respective fields
-	*RSSI=response[4];
-	*SNR=response[5];
+	//Pull the response data into their respecive fields
+	RSQ->RSSI=response[4];
+	RSQ->SNR=response[5];
 
 	if(_mode==FM){
-		*STBLEND=response[3]&63;
-		*MULT=response[6];
-		*FREQOFF=response[7];
+		RSQ->STBLEND=response[3]&63;
+		RSQ->MULT=response[6];
+		RSQ->FREQOFF=response[7];
 	}
 	else{
-		*STBLEND=0;
-		*MULT=0;
-		*FREQOFF=0;
+		RSQ->STBLEND=0;
+		RSQ->MULT=0;
+		RSQ->FREQOFF=0;
 	}
-	
-	return;
 }
 
 byte Si4735::volumeUp(void){
 	//If we're not at the maximum volume yet, increase the volume
-	if(_currentVolume < 63){
-		_currentVolume+=1;
+	if(_volume < 63){
+		_volume+=1;
 		//Set the volume to the current value.
-		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
+		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _volume);
 		sendCommand(command, 6);
 		delay(10);		
 	}
-	return _currentVolume;
+	return _volume;
 }
 
 byte Si4735::volumeDown(void){
 	//If we're not at the minimum volume yet, decrease the volume
-	if(_currentVolume > 0){
-		_currentVolume-=1;
+	if(_volume > 0){
+		_volume-=1;
 		//Set the volume to the current value.
-		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _currentVolume);
+		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _volume);
 		sendCommand(command, 6);
 		delay(10);		
 	}
-	return _currentVolume;
+	return _volume;
 }
 
-byte Si4735::setVolume(byte volume) {
+byte Si4735::setVolume(byte value){
 	if(value <= 63 && value >= 0){
-		_currentVolume=volume;
-		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, volume);
+		_volume=value;
+		//Set the volume to the current value.
+		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _volume);
 		sendCommand(command, 6);
 		delay(10);		
 	}
-	return _currentVolume;
+	return _volume;
 }
 
 byte Si4735::getVolume() {
 	//Read the true value for volume from the Si4735
-	char response [16];
-	byte volume;
-	
+	char response [16];	
 	sprintf(command, "%c%c%c%c", 0x13, 0x00, 0x40, 0x00);
-	sendCommand(command, 4);
-	
+	sendCommand(command, 4);	
 	getResponse(response);
-	//return _currentVolume;
-	return response[3];
+	_volume = response[3];
+	return _volume; 
 }
 
 void Si4735::mute(void){
@@ -547,6 +547,20 @@ void Si4735::end(void){
 	delay(1);
 }
 
+void Si4735::setLocale(byte locale){
+	_locale=locale;	
+}
+byte Si4735::getLocale(void){
+	return _locale;
+}
+void Si4735::setMode(char mode){
+	end();
+	begin(mode);
+}
+char Si4735::getMode(void){
+	return _mode;
+}
+
 /*******************************************
 *
 * Private Functions
@@ -574,82 +588,86 @@ void Si4735::sendCommand(char * command, int length){
   digitalWrite(SS, HIGH);  //End the sequence
 }
 
-void Si4735::ptystr(byte pty){
-	// Translate the Program Type bits to the RDS/RBDS 16-character fields
-	//Currently you need to set the pty_LUT to your locale.
-	//TODO: Add a locale variable that is set by the user (programmatically) that selects one of these
-	const char* pty_LUT[32] = {	
-			"      None      ",
-			"      News      ",
-			"  Information   ",
-			"     Sports     ",
-			"      Talk      ",
-			"      Rock      ",
-			"  Classic Rock  ",
-			"   Adult Hits   ",
-			"   Soft Rock    ",
-			"     Top 40     ",
-			"    Country     ",
-			"     Oldies     ",
-			"      Soft      ",
-			"   Nostalgia    ",
-			"      Jazz      ",
-			"   Classical    ",
-			"Rhythm and Blues",
-			"   Soft R & B   ",
-			"Foreign Language",
-			"Religious Music ",
-			" Religious Talk ",
-			"  Personality   ",
-			"     Public     ",
-			"    College     ",
-			"   None 11000   ",
-			"   None 11001   ",
-			"   None 11010   ",
-			"   None 11011   ",
-			"   None 11100   ",
-			"     Weather    ",
-			" Emergency Test ",
-			" ALERT! ALERT!  "};
-	/*	This is the European Program Type LUT	
-		const char* pty_LUT[32] = {	
-			"      None      ",
-			"      News      ",
-			"Current Affairs ",
-			"  Information   ",
-			"     Sports     ",
-			"   Education    ",
-			"     Drama      ",
-			"    Cultures    ",
-			"    Science     ",
-			" Varied Speech  ",
-			"   Pop Music    ",
-			"  Rock Music    ",
-			" Easy Listening ",
-			"Light Classics M",
-			"Serious Classics",
-			"  Other Music   ",
-			" Weather & Metr ",
-			"    Finance     ",
-			"Children's Progs",
-			" Social Affairs ",
-			"    Religion    ",
-			"    Phone In    ",
-			"Travel & Touring",
-			"Leisure & Hobby ",
-			"   Jazz Music   ",
-			" Country Music  ",
-			"  Oldies Music  ",
-			"   Folk Music   ",
-			"  Documentary   ",
-			"   Alarm Test   ",
-			" Alarm - Alarm! "};
-			*/
+void Si4735::ptystr(byte pty){	
+	// Translate the Program Type bits to the RBDS 16-character fields
 	if(pty>=0 && pty<32){
-		strcpy(_pty, pty_LUT[pty]);
+		if(_locale==NA){		
+			char* pty_LUT[32] = {	
+				"      None      ",
+				"      News      ",
+				"  Information   ",
+				"     Sports     ",
+				"      Talk      ",
+				"      Rock      ",
+				"  Classic Rock  ",
+				"   Adult Hits   ",
+				"   Soft Rock    ",
+				"     Top 40     ",
+				"    Country     ",
+				"     Oldies     ",
+				"      Soft      ",
+				"   Nostalgia    ",
+				"      Jazz      ",
+				"   Classical    ",
+				"Rhythm and Blues",
+				"   Soft R & B   ",
+				"Foreign Language",
+				"Religious Music ",
+				" Religious Talk ",
+				"  Personality   ",
+				"     Public     ",
+				"    College     ",
+				"   None 11000   ",
+				"   None 11001   ",
+				"   None 11010   ",
+				"   None 11011   ",
+				"   None 11100   ",
+				"     Weather    ",
+				" Emergency Test ",
+				" ALERT!  ALERT! "};
+			strcpy(_pty, pty_LUT[pty]);			
+		}
+		else if(_locale==EU){
+			char* pty_LUT[32] = {	
+				"      None      ",
+				"      News      ",
+				"Current Affairs ",
+				"  Information   ",
+				"     Sports     ",
+				"   Education    ",
+				"     Drama      ",
+				"    Cultures    ",
+				"    Science     ",
+				" Varied Speech  ",
+				"   Pop Music    ",
+				"  Rock Music    ",
+				" Easy Listening ",
+				"Light Classics M",
+				"Serious Classics",
+				"  Other Music   ",
+				" Weather & Metr ",
+				"    Finance     ",
+				"Children's Progs",
+				" Social Affairs ",
+				"    Religion    ",
+				"    Phone In    ",
+				"Travel & Touring",
+				"Leisure & Hobby ",
+				"   Jazz Music   ",
+				" Country Music  ",
+				"  Oldies Music  ",
+				"   Folk Music   ",
+				"  Documentary   ",
+				"   Alarm Test   ",
+				" Alarm - Alarm! "};
+			strcpy(_pty, pty_LUT[pty]);
+		}		
+		else{
+			strcpy(_pty, " LOCALE UNKN0WN ");
+		}
 	}
 	else{
-		strcpy(_pty, "   PTY ERROR!   ");
-	}
+		strcpy(_pty, "    PTY ERROR   ");
+	}	
 }
 
