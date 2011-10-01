@@ -34,10 +34,50 @@
 #define SW	2
 #define	LW	3
 
+//Define the Locale options
+
+#define NA 0
+#define EU 1
+
 #define ON	true
 #define OFF	false
 
 #define MAKEINT(msb, lsb) (((msb) << 8) | (lsb))
+
+typedef struct Today {
+	//int day;
+	byte hour;
+	byte minute;
+};
+
+
+
+typedef struct RadioInfo {
+	char mode;
+	byte locale;
+	Today date;	
+};
+
+
+
+typedef struct Metrics {
+	byte STBLEND;
+	byte RSSI;
+	byte SNR;
+	byte MULT;
+	byte FREQOFF;
+};
+
+
+
+typedef struct Station {
+	char callSign[5];
+	char programType[17];
+	char programService[9];
+	char radioText[65];
+	//Metrics signalQuality;
+	//int frequency
+};
 
 class Si4735 : public SPIClass
 {
@@ -51,7 +91,7 @@ class Si4735 : public SPIClass
 		*	The bands are set as follows:
 		*	FM - 87.5 - 107.9 MHz
 		*	AM - 520 - 1710 kHz
-		*	SW - 2300 - 23000 khz
+		*	SW - 2300 - 23000 kz
 		*	LW - 152 - 279 kHz
 		* Parameters:
 		*	mode - The desired radio mode. Use AM(0), FM(1), SW(2) or LW(3).
@@ -71,38 +111,26 @@ class Si4735 : public SPIClass
 		*	Used to to tune the radio to a desired frequency. The library uses the mode indicated in the
 		* 	begin() function to determine how to set the frequency.
 		* Parameters:
-		*	frequency - The frequency to tune to, in kHz (or in 10kHz if using FM mode).
-		* Returns:
-		*	True
-		* TODO:
-		* 	Make the function return true if the tune was successful, else return false.
+		*	frequency - The frequency to tune to, in kHz (or in 10kHz if using FM mode).			
 		*/
-		bool tuneFrequency(int frequency);
+		void tuneFrequency(word frequency);
 		/*
 		* Description:
 		*	Gets the frequency of the currently tuned station		
 		*/
-		int getFrequency(bool &valid);
+		word getFrequency(bool &valid);
 		/*
 		* Description:
 		*	Commands the radio to seek up to the next valid channel. If the top of the band is reached, the seek
 		*	will continue from the bottom of the band.
-		* Returns:
-		*	True
-		* TODO:
-		*	Make the function return true if a valid channel was found, else return false.
 		*/
-		bool seekUp(void);
+		void seekUp(void);
 		/*
 		* Description:
 		*	Commands the radio to seek down to the next valid channel. If the bottom of the band is reached, the seek
 		*	will continue from the top of the band.
-		* Returns:
-		*	True
-		* TODO:
-		*	Make the function return true if a valid channel was found, else return false.
 		*/		
-		bool seekDown(void);
+		void seekDown(void);
 		/*
 		*  Description:
 		*	Collects the RDS information. 
@@ -113,13 +141,32 @@ class Si4735 : public SPIClass
 		*  Description:
 		*	Pulls the RDS information from the private variable and copies them locally. 		
 		*/
-		void getRDS(char * ps, char * radiotext);
+		void getRDS(Station * tunedStation);
+		/*
+		*  Description:
+		*	Clears _disp and _ps so that data from other stations are not overlayed on the current station.
+		*/
+		void clearRDS(void);
+		/*
+		*  Description:
+		*	Retreives the Time time that is broadcasted from the tuned station.
+		*/
+		void getTime(Today * date);
 		/*
 		*  Description:
 		*	Retreives the Received Signal Quality Parameters/Metrics.
 		*/
-		void getRSQ(byte *STBLEND, byte *RSSI, byte *SNR, byte *MULT, byte *FREQOFF);
+		void getRSQ(Metrics * RSQ);		
 		/*
+		* Description:
+		*	Sets the volume. If of of the 0 - 63 range, no change will be made.
+		*/
+		byte setVolume(byte value);
+		/*
+		* Description:
+		*	Gets the current volume.
+		*/
+		byte getVolume(void);	
 		/*
 		* Description:
 		*	Increasese the volume by 1. If the maximum volume has been reached, no increase will take place.
@@ -130,16 +177,6 @@ class Si4735 : public SPIClass
 		*	Decreases the volume by 1. If the minimum volume has been reached, no decrease will take place.
 		*/
 		byte volumeDown(void);
-		/*
-		* Description:
-		*	Sets the volume. If the volume is outside the 0-63 range, no change will take place.
-		*/
-		byte setVolume(byte volume);
-		/*
-		* Description:
-		*	Gets the volume directly from the Si4735 chip.
-		*/
-		byte getVolume();
 		/*
 		* Description:
 		*	Mutes the audio output
@@ -169,24 +206,44 @@ class Si4735 : public SPIClass
 		*	Powers down the radio
 		*/
 		void end(void);
-		
-	private:
-		char _disp[65]; // Radio Text
-		char _ps[9]; // Program service name
-		bool _ab; // Detect new radiotext
-		char _pty[17];	//Program Type
 		/*
-		* A variable that is assigned the current mode of the radio (AM, FM, SW or LW)
+		* Description:
+		*	Sets the Locale. This determines what Lookup Table (LUT) to use for the pyt_LUT.
 		*/
-		char _mode;
+		void setLocale(byte locale);
 		/*
-		* A variable the keeps the current volume level. 
+		* Description:
+		*	Gets the Locale.
 		*/
-		char _currentVolume;
+		byte getLocale(void);		
+		/*
+		* Description:
+		*	Gets the Mode of the radio [AM,FM,SW,LW].
+		*/
+		char getMode(void);
+		/*
+		* Description:
+		*	Sets the Mode of the radio [AM,FM,SW,LW]. This also performs a powerdown operation.
+		*	The user is responsible for reissuing the begin method after this method has been called.
+		*/
+		void setMode(char mode);
+
+	private:		
+		char _mode; 				//Contains the Current Radio mode [AM,FM,SW,LW]		
+		char _volume;				//Current Volume [0-63]
+		//word _frequency;			//Current Frequency
+		char _disp[65]; 			//Radio Text String
+		char _ps[9]; 				//Program Service String
+		char _csign[5]; 			//Call Sign
+		bool _ab; 				//Indicates new radioText		
+		char _pty[17];				//Program Type String
+		byte _hour;				//Contains the hour
+		byte _minute; 				//Contains the minute
+		byte _locale; 				//Contains the locale [NA, EU]	
 		/*
 		* Command string that holds the binary command string to be sent to the Si4735.
 		*/
-		char command[9];
+		char command[9];	
 		/*
 		* Description:
 		*	Sends a binary command string to the Si4735.
@@ -205,13 +262,12 @@ class Si4735 : public SPIClass
 		* Returns:
 		*	The character read from the SPI bus during the transfer.
 		*/
-		char spiTransfer(char value);
+		char spiTransfer(char value);	
 		/*
-		* Description:
-		*	Clears the RDS info. This should be called whenever the station changes.
-		*	This is help avoid one station's RDS info from overlaying on another stations.
+		*  Description:
+		*	converts the integer pty value to the 16 character string Program Type.
 		*/
-		void clearRDS(void);
+		void ptystr(byte);		
 };
 
 #endif
