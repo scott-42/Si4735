@@ -419,6 +419,11 @@ void Si4735::getRDS(Station * tunedStation) {
 	strcpy(tunedStation->callSign, _csign);		
 }
 
+void Si4735::getTime(Today * date){
+	date->hour=_hour;
+	date->minute=_minute;
+}
+
 void Si4735::getRSQ(Metrics * RSQ){
 	//This function gets the Received Signal Quality Information
 	char response [16];
