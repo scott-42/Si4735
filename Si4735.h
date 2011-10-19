@@ -2,7 +2,7 @@
  * Written by Ryan Owens for SparkFun Electronics
  * 5/17/11
  * Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
- * Altered by Jon Carrier <jjcarrier@gmail.com> on 09/19/11
+ * Altered by Jon Carrier <jjcarrier@gmail.com> on 10/19/11
  *
  * This library is for use with the SparkFun Si4735 Shield
  * Released under the 'Buy Me a Beer' license
@@ -45,20 +45,18 @@
 #define MAKEINT(msb, lsb) (((msb) << 8) | (lsb))
 
 typedef struct Today {
-	//int day;
+	byte year; //The 2-digit year
+	byte month;
+	byte day;
 	byte hour;
 	byte minute;
 };
-
-
 
 typedef struct RadioInfo {
 	char mode;
 	byte locale;
 	Today date;	
 };
-
-
 
 typedef struct Metrics {
 	byte STBLEND;
@@ -67,8 +65,6 @@ typedef struct Metrics {
 	byte MULT;
 	byte FREQOFF;
 };
-
-
 
 typedef struct Station {
 	char callSign[5];
@@ -229,17 +225,20 @@ class Si4735 : public SPIClass
 		void setMode(char mode);
 
 	private:		
-		char _mode; 				//Contains the Current Radio mode [AM,FM,SW,LW]		
-		char _volume;				//Current Volume [0-63]
+		char _mode; 				//Contains the Current Radio mode [AM,FM,SW,LW]	
+		char _volume;				//Current Volume
 		//word _frequency;			//Current Frequency
 		char _disp[65]; 			//Radio Text String
 		char _ps[9]; 				//Program Service String
 		char _csign[5]; 			//Call Sign
 		bool _ab; 				//Indicates new radioText		
 		char _pty[17];				//Program Type String
+		byte _year;				//Contains the month
+		byte _month;				//Contains the year
+		byte _day;				//Contains the day
 		byte _hour;				//Contains the hour
 		byte _minute; 				//Contains the minute
-		byte _locale; 				//Contains the locale [NA, EU]	
+		byte _locale; 				//Contains the locale [NA, EU]
 		/*
 		* Command string that holds the binary command string to be sent to the Si4735.
 		*/
@@ -267,7 +266,14 @@ class Si4735 : public SPIClass
 		*  Description:
 		*	converts the integer pty value to the 16 character string Program Type.
 		*/
-		void ptystr(byte);		
+		void ptystr(byte);
+		/*
+		*  Description:
+		*	Filters the sting str to only contain printable characters.
+		*	Any character that is not a normal character is converted to a space.
+		* 	This helps with filtering out noisy strings.
+		*/
+		void printable_str(char * str, int length);			
 };
 
 #endif
