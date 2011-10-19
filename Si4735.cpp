@@ -166,27 +166,31 @@ void Si4735::sendCommand(char * myCommand){
 	sendCommand(command, index);
 }
 
-void Si4735::tuneFrequency(word frequency){
+void Si4735::tuneFrequency(word frequency){	
 	//Split the desired frequency into two character for use in the
 	//set frequency command.
-	byte highByte = frequency >> 8;
-	byte lowByte = frequency & 0x00FF;
-	
+	char highByte = frequency >> 8;
+	char lowByte = frequency & 0x00FF;
+
 	//Depending on the current mode, set the new frequency.
 	switch(_mode){
+		// page 67 of AN332
 		case FM:
-			sprintf(command, "%c%c%c%c", 0x20, 0x00, highByte, lowByte);
+			sprintf(command, "%c%c%c%c%c", 0x20, 0x00, highByte, lowByte, 0x00);
 			break;
+		// page 128 of AN332
 		case AM:
-		case SW:
 		case LW:
-			sprintf(command, "%c%c%c%c", 0x40, 0x00, highByte, lowByte);
+			sprintf(command, "%c%c%c%c%c%c", 0x40, 0x00, highByte, lowByte, 0x00, 0x00);
+			break;
+		case SW:
+			sprintf(command, "%c%c%c%c%c%c", 0x40, 0x00, highByte, lowByte, 0x00, 0xff);
 			break;
 		default:
 			break;
 	}
 	sendCommand(command, 4);
-	delay(100);	
+	delay(100);
 	clearRDS();
 }
 
