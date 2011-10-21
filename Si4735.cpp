@@ -2,7 +2,7 @@
  * Written by Ryan Owens for SparkFun Electronics
  * 5/17/11
  * Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
- * Altered by Jon Carrier <jjcarrier@gmail.com> on 09/30/11
+ * Altered by Jon Carrier <jjcarrier@gmail.com> on 10/20/11
  *
  * This library is for use with the SparkFun Si4735 Shield
  * Released under the 'Buy Me a Beer' license
@@ -401,9 +401,9 @@ bool Si4735::readRDS(void){
 
 		_hour=((response[9]&1)<<4) | ((response[10]>>4)&15);
 		_minute=((response[10]&15)<<2 | (response[11]>>6)&3);			
-		_hour= (_hour + (offset/2))%24;
+		_hour= (_hour + (offset/2) + 24)%24;
 		if(_hour==0) _hour=24;
-		_minute=(_minute+ (offset)%2*30)%60;
+		_minute=(_minute + (offset)%2*30 + 60)%60;
 	}
  	printable_str(_disp, 64);
 	printable_str(_ps, 8);
