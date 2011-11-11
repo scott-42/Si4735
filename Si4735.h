@@ -2,7 +2,7 @@
  * Written by Ryan Owens for SparkFun Electronics
  * 5/17/11
  * Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
- * Altered by Jon Carrier <jjcarrier@gmail.com> on 10/19/11
+ * Altered by Jon Carrier <jjcarrier@gmail.com> on 11/11/11
  *
  * This library is for use with the SparkFun Si4735 Shield
  * Released under the 'Buy Me a Beer' license
@@ -43,6 +43,7 @@
 #define OFF	false
 
 #define MAKEINT(msb, lsb) (((msb) << 8) | (lsb))
+typedef unsigned int u_int;
 
 typedef struct Today {
 	byte year; //The 2-digit year
