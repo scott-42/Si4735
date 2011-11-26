@@ -548,6 +548,19 @@ void Si4735::end(void){
 
 void Si4735::setLocale(byte locale){
 	_locale=locale;	
+	//Set the deemphasis to match the locale
+	switch(_locale){
+		case NA:
+			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x11, 0x00, 0x00, 0x02);			
+			break;
+		case EU:
+			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x11, 0x00, 0x00, 0x01);
+			break;
+		default:
+			break;
+	}	
+	//Send the command
+	sendCommand(command, 6);
 }
 
 byte Si4735::getLocale(void){
