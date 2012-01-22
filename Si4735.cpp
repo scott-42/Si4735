@@ -353,17 +353,34 @@ bool Si4735::readRDS(void){
 		// Get their address
 		int addressRT = response[7] & 15; // Get rightmost 4 bits
 		bool ab = bitRead(response[7], 4);
- 
+ 		bool cr = 0; //indicates that a carriage return was received
+		byte len = 64;
 		if (version == 0) {
 			if (addressRT >= 0 && addressRT <= 15) {
-				if (response[8] != '\0')
+				if (response[8] != 0x0D )
 					_disp[addressRT*4] = response[8];
-				if (response[9] != '\0')
+				else{
+					len=addressRT*4;
+					cr=1;
+				}
+				if (response[9] != 0x0D)
 					_disp[addressRT*4+1] = response[9];
-				if (response[10] != '\0')
+				else{
+					len=addressRT*4+1;
+					cr=1;
+				}
+				if (response[10] != 0x0D)
 					_disp[addressRT*4+2] = response[10]; 
-				if (response[11] != '\0')
-				_disp[addressRT*4+3] = response[11];
+				else{
+					len=addressRT*4+2;
+					cr=1;
+				}
+				if (response[11] != 0x0D)
+					_disp[addressRT*4+3] = response[11];
+				else{
+					len=addressRT*4+3;
+					cr=1;
+				}
 			}
 		} else {
 			if (addressRT >= 0 && addressRT <= 7) {
@@ -372,6 +389,9 @@ bool Si4735::readRDS(void){
 				if (response[11] != '\0')
 					_disp[addressRT*2+1] = response[11];
 			}
+		}
+		if(cr){
+			for (byte i=len; i<64; i++) _disp[i] = ' ';
 		}
 		if (ab != _ab) {
 			for (byte i=0; i<64; i++) _disp[i] = ' ';
