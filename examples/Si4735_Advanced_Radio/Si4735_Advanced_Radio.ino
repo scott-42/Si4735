@@ -11,10 +11,10 @@
  * ARDUINO PIN USAGE AND PURPOSE:
  * 0 -  Serial RX (used for remote control through USB)
  * 1 -  Serial TX (used to write to the LCD display)
- * 2 -  (initially acts as the INT_PIN, GPO2)
- * 3 -  ROTARY Encoder A (interrupt)
+ * 2 -  ROTARY Encoder B (initially acts as the INT_PIN, GPO2)
+ * 3 -  ROTARY Encoder A 
  * 4 -  
- * 5 -  ROTARY Encoder B
+ * 5 -  
  * 6 -  ROTARY Push Button (Used to switch the local control mode for the rotary encoder)
  * 7 -  RADIO Slave Select
  * 8 -  RADIO Power
@@ -47,18 +47,18 @@
 #include <SPI.h>
 #include <Si4735.h>
 #include <SerLCD.h>
-//#include <Rotary.h>
-#include <Rotary_one.h>
+#include <Rotary.h>
+//#include <Rotary_one.h>
 #include <Helper.h>
 //===================Create the Object Instances==================
 Si4735 radio;
 Station tuned;
-//Rotary rot;
-Rotary_one rot;
+Rotary rot;
+//Rotary_one rot;
 SerLCD LCD;
 //===================DEFINE RADIO Related Parameters=================
 #define EncA 3 //Encoder A, this is the one that has the interrupt
-#define EncB 5 //Encoder B
+#define EncB 2 //Encoder B
 #define PB 6 //Pushbutton
 
 //This counter variable is used to refresh the LCD screen only once.
