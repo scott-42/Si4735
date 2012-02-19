@@ -140,7 +140,7 @@ void loop()
 
         //===================DISPLAY BEHAVIOR===================      
         //-------------------LINE ONE BEHAVIOR------------------
-        if(refresh_cnt>=0 && refresh_cnt<50 ){
+        if(refresh_cnt>=1 && refresh_cnt<50 ){
         if(refresh_cnt==5 ){
         //For a period of time shortly after changing a parameter
         //Display the Program Type
