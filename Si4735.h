@@ -1,8 +1,6 @@
 /* Arduino Si4735 Library
  * Written by Ryan Owens for SparkFun Electronics
  * 5/17/11
- * Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
- * Altered by Jon Carrier <jjcarrier@gmail.com> on 11/11/11
  *
  * This library is for use with the SparkFun Si4735 Shield
  * Released under the 'Buy Me a Beer' license
@@ -14,8 +12,8 @@
 #ifndef Si4735_h
 #define Si4735_h
 
-#include "WProgram.h"
 #include "SPI.h"
+#include "string.h"
 
 //Assign the radio pin numbers
 #define POWER_PIN	8
@@ -23,19 +21,27 @@
 #define INT_PIN	2
 
 //Define the SPI Pin Numbers
-#define DATAOUT 11		//MOSI
-#define DATAIN  12		//MISO 
-#define SPICLOCK  13	//sck
-#define SS 10	        //ss
+#ifdef MEGA
+	//DEFINE THE MEGA PINS
+	#define DATAOUT 51		//MOSI
+	#define DATAIN  50		//MISO 
+	#define SPICLOCK  52		//sck
+	#define SS 53	  			//ss
+#else
+	//DEFINE THE UNO PINS
+	#define DATAOUT 11		//MOSI
+	#define DATAIN  12		//MISO 
+	#define SPICLOCK  13		//sck
+	#define SS 7//10	  		//ss
+#endif
 
 //List of possible modes for the Si4735 Radio
 #define AM	0
-#define	FM	1
+#define FM	1
 #define SW	2
-#define	LW	3
+#define LW	3
 
 //Define the Locale options
-
 #define NA 0
 #define EU 1
 
@@ -56,7 +62,7 @@ typedef struct Today {
 typedef struct RadioInfo {
 	char mode;
 	byte locale;
-	Today date;	
+	Today date;
 };
 
 typedef struct Metrics {
@@ -69,7 +75,7 @@ typedef struct Metrics {
 
 typedef struct Station {
 	char callSign[5];
-	char programType[17];
+	char programType[17];	
 	char programService[9];
 	char radioText[65];
 	//Metrics signalQuality;
@@ -88,7 +94,7 @@ class Si4735 : public SPIClass
 		*	The bands are set as follows:
 		*	FM - 87.5 - 107.9 MHz
 		*	AM - 520 - 1710 kHz
-		*	SW - 2300 - 23000 kz
+		*	SW - 2300 - 23000 khz
 		*	LW - 152 - 279 kHz
 		* Parameters:
 		*	mode - The desired radio mode. Use AM(0), FM(1), SW(2) or LW(3).
@@ -105,10 +111,23 @@ class Si4735 : public SPIClass
 		void sendCommand(char * myCommand);
 		/*
 		* Description: 
+		*		Acquires certain revision parameters from the Si4735 chip.
+		* Parameters:
+		*		FW = Firmware and it is a 2 character array
+		*		CMP = Component Revision and it is a 2 character array
+		*		REV = Chip Revision and it is a single character
+		*/
+		void getREV(char*FW,char*CMP,char*REV);
+		/*
+		* Description: 
 		*	Used to to tune the radio to a desired frequency. The library uses the mode indicated in the
 		* 	begin() function to determine how to set the frequency.
 		* Parameters:
-		*	frequency - The frequency to tune to, in kHz (or in 10kHz if using FM mode).			
+		*	frequency - The frequency to tune to, in kHz (or in 10kHz if using FM mode).
+		* Returns:
+		*	True
+		* TODO:
+		* 	Make the function return true if the tune was successful, else return false.
 		*/
 		void tuneFrequency(word frequency);
 		/*
@@ -120,12 +139,20 @@ class Si4735 : public SPIClass
 		* Description:
 		*	Commands the radio to seek up to the next valid channel. If the top of the band is reached, the seek
 		*	will continue from the bottom of the band.
+		* Returns:
+		*	True
+		* TODO:
+		*	Make the function return true if a valid channel was found, else return false.
 		*/
 		void seekUp(void);
 		/*
 		* Description:
 		*	Commands the radio to seek down to the next valid channel. If the bottom of the band is reached, the seek
 		*	will continue from the top of the band.
+		* Returns:
+		*	True
+		* TODO:
+		*	Make the function return true if a valid channel was found, else return false.
 		*/		
 		void seekDown(void);
 		/*
@@ -226,20 +253,20 @@ class Si4735 : public SPIClass
 		void setMode(char mode);
 
 	private:		
-		char _mode; 				//Contains the Current Radio mode [AM,FM,SW,LW]	
+		char _mode; 				//Contains the Current Radio mode [AM,FM,SW,LW]		
 		char _volume;				//Current Volume
 		//word _frequency;			//Current Frequency
 		char _disp[65]; 			//Radio Text String
 		char _ps[9]; 				//Program Service String
 		char _csign[5]; 			//Call Sign
-		bool _ab; 				//Indicates new radioText		
+		bool _ab; 					//Indicates new radioText		
 		char _pty[17];				//Program Type String
-		byte _year;				//Contains the month
+		byte _year;					//Contains the month
 		byte _month;				//Contains the year
-		byte _day;				//Contains the day
-		byte _hour;				//Contains the hour
+		byte _day;					//Contains the day
+		byte _hour;					//Contains the hour
 		byte _minute; 				//Contains the minute
-		byte _locale; 				//Contains the locale [NA, EU]
+		byte _locale; 				//Contains the locale [NA, EU]	
 		/*
 		* Command string that holds the binary command string to be sent to the Si4735.
 		*/
@@ -251,7 +278,7 @@ class Si4735 : public SPIClass
 		*	command - Binary command to be sent to the radio.
 		*	length - The number of characters in the command string (since it can't be null terminated!)
 		* TODO:
-		*	Make the command wait for a valid CTS response from the radio before releasing control of the CPU.
+		*	Make the command wait for a valid CTS response from the radio before releasing 				control of the CPU.
 		*/
 		void sendCommand(char * command, int length);
 		/*
@@ -273,8 +300,9 @@ class Si4735 : public SPIClass
 		*	Filters the sting str to only contain printable characters.
 		*	Any character that is not a normal character is converted to a space.
 		* 	This helps with filtering out noisy strings.
+
 		*/
-		void printable_str(char * str, int length);			
+		void printable_str(char * str, int length);		
 };
 
 #endif

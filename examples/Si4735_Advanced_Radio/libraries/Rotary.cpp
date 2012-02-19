@@ -5,7 +5,7 @@
 //                          ROTARY FUNCTIONS
 //#####################################################################
 #include "Rotary.h"
-#include "WProgram.h"
+
 Rotary::Rotary(){}
 
 void Rotary::begin(int EncA, int EncB, int PB, void (*CALLBACK)(void)){
@@ -23,7 +23,7 @@ void Rotary::begin(int EncA, int EncB, int PB, void (*CALLBACK)(void)){
 	digitalWrite(PB, LOW);
 	digitalWrite(EncA, HIGH);
 	digitalWrite(EncB, HIGH);
-	
+
 
 	//We use an interrupt to improve the performance of the encoder
 	attachInterrupt(0,CALLBACK,CHANGE);

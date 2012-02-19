@@ -4,27 +4,27 @@
 //#####################################################################
 //                          ROTARY FUNCTIONS
 //#####################################################################
-#ifndef Rotary_h
-#define Rotary_h
+#ifndef Rotary_one_h
+#define Rotary_one_h
 #if defined(ARDUINO) && ARDUINO >= 100
-  #include "Arduino.h"
+#include "Arduino.h"
 #else
-  #include "WProgram.h"
-  //#include <pins_arduino.h>
+#include "WProgram.h"
 #endif
-class Rotary
+class Rotary_one
 {
 	public:
-		Rotary();
+		Rotary_one();
 		void begin(int EncA, int EncB, int PB, void (*CALLBACK)(void));
 		void read(void);
 		int isFwdRot(void);
 		int isRevRot(void);
 		void end(void);
-
+		volatile int ROTA; //Currently read value on A
+		volatile int ROTB; //Currently read value on B
 	private:
-		volatile int _ROT_FIFO_0; //Most Recent
-		volatile int _ROT_FIFO_1;	
+		int _ROTA_prev;
+		int _ROTB_prev;
 		int _EncA;
 		int _EncB;
 		int _PB;
