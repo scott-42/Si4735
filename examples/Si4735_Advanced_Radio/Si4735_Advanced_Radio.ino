@@ -16,10 +16,10 @@
  * 4 -  
  * 5 -  
  * 6 -  ROTARY Push Button (Used to switch the local control mode for the rotary encoder)
- * 7 -  RADIO Slave Select
+ * 7 -  
  * 8 -  RADIO Power
  * 9 -  RADIO Reset
- * 10 - 
+ * 10 - RADIO Slave Select
  * 11 - SPI MOSI
  * 12 - SPI MISO
  * 13 - SPI CLK
