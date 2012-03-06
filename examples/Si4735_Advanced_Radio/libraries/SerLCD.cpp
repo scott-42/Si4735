@@ -26,6 +26,8 @@ void SerLCD::setBaud(int baud){
 			Serial.print(0x10, BYTE);  
 			break;
 		default:
+			//reset command, must be done on LCD powerup
+			Serial.print(0x12, BYTE);   
 			break;
 		}
 }
@@ -83,7 +85,7 @@ void SerLCD::backlight(bool state){  //turns on the backlight
 
 void SerLCD::serCommand(byte cmd){   //a general function to call the command flag for issuing all other commands   
   Serial.print(0xFE, BYTE);
-  Serial.print(0xFE, cmd);
+  Serial.print(cmd, BYTE);
 }
 
 void SerLCD::clearLine(int line){
