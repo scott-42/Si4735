@@ -13,7 +13,7 @@
 #ifndef Si4735_h
 #define Si4735_h
 
-//Comment out these 'defines' to stip down the Si4735 library features.
+//Comment out these 'defines' to strip down the Si4735 library features.
 //This will help you save memory space at the cost of features.
 #define USE_SI4735_REV
 #define USE_SI4735_FREQUENCY
