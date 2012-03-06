@@ -83,6 +83,14 @@ void SerLCD::backlight(bool state){  //turns on the backlight
 		Serial.print(128, BYTE);     //light level for off.   
 }
 
+void SerLCD::visible(bool state){  //turns on/off the display
+	Serial.print(0xFE, BYTE);   //command flag
+	if(state)
+		Serial.print(0x0C, BYTE);    //display ON  
+	else
+		Serial.print(0x08, BYTE);     //display OFF
+}
+
 void SerLCD::serCommand(byte cmd){   //a general function to call the command flag for issuing all other commands   
   Serial.print(0xFE, BYTE);
   Serial.print(cmd, BYTE);
