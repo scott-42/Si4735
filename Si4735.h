@@ -58,7 +58,7 @@
 	#define DATAOUT 11		//MOSI
 	#define DATAIN  12		//MISO 
 	#define SPICLOCK  13		//sck
-	#define SS 7//10	  		//ss
+	#define SS 10	  		//ss
 #endif
 
 //List of possible modes for the Si4735 Radio
