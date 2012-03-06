@@ -24,6 +24,7 @@ class SerLCD
 		void goTo(int position);
 		void clear();
 		void backlight(bool state);
+		void visible(bool state);
 		void serCommand(byte cmd);
 		void clearLine(int line);
 
