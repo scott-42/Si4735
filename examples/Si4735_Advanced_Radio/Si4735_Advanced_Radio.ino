@@ -11,15 +11,15 @@
  * ARDUINO PIN USAGE AND PURPOSE:
  * 0 -  Serial RX (used for remote control through USB)
  * 1 -  Serial TX (used to write to the LCD display)
- * 2 -  ROTARY Encoder B (initially acts as the INT_PIN, GPO2)
- * 3 -  ROTARY Encoder A 
+ * 2 -  ROTARY Encoder A (initially acts as the INT_PIN, GPO2)
+ * 3 -  ROTARY Encoder B (interrupt)
  * 4 -  
  * 5 -  
  * 6 -  ROTARY Push Button (Used to switch the local control mode for the rotary encoder)
- * 7 -  
+ * 7 -  RADIO Slave Select
  * 8 -  RADIO Power
  * 9 -  RADIO Reset
- * 10 - RADIO Slave Select
+ * 10 - 
  * 11 - SPI MOSI
  * 12 - SPI MISO
  * 13 - SPI CLK
@@ -43,6 +43,24 @@
  * modes. All of the functions in the library will work regardless of which mode is being used; however the user must indicate
  * which mode is to be used in the begin() function. See the library documentation for more information.
  */
+/*
+#define USE_SI4735_REV
+#define USE_SI4735_FREQUENCY
+#define USE_SI4735_SEEK
+
+#define USE_SI4735_RDS
+#define USE_SI4735_CALLSIGN
+#define USE_SI4735_PTY
+#define USE_SI4735_RADIOTEXT
+#define USE_SI4735_DATE_TIME
+
+#define USE_SI4735_RSQ
+#define USE_SI4735_VOLUME
+#define USE_SI4735_MUTE
+
+#define USE_SI4735_LOCALE
+#define USE_SI4735_MODE
+*/
 //===================DEFINE LIBRARIES==================
 #include <SPI.h>
 #include <Si4735.h>
@@ -58,7 +76,7 @@ Rotary rot;
 SerLCD LCD;
 //===================DEFINE RADIO Related Parameters=================
 #define EncA 3 //Encoder A, this is the one that has the interrupt
-#define EncB 2 //Encoder B
+#define EncB 2//5 //Encoder B
 #define PB 6 //Pushbutton
 
 //This counter variable is used to refresh the LCD screen only once.
@@ -76,7 +94,7 @@ bool update=true;
 //State 0: Rotary Encoder changes the volume
 //State 1: Rotary Encoder changes the frequency (step mode)
 //State 2: Rotary Encoder changes the frequency (seek mode)
-int state=0;
+int state=2;
 
 //Define the user configurable settings
 volatile byte volume=63; //Start at 100% Volume
@@ -97,27 +115,70 @@ byte radioText_pos; //Scrolling Position
 //                              SETUP
 //#####################################################################
 void setup()
-{
-        //Create a serial connection
-	Serial.begin(9600);        
-        //Create the Rotary Encoder connection
+{       
+        //Create a serial connection                
+	Serial.begin(9600);
+        //Setup the LCD display and print the initial settings
+        //Reset the LCD Baud Setting
+        LCD.setBaud(0);        
+        delay(500); //Let the LCD powerup 
+        LCD.visible(true);
+        delay(100);
+        LCD.backlight(true);
+        delay(100);
+        LCD.goTo(0);
+        Serial.print("-=ArduinoRadio=-");
+        LCD.goTo(16);
+        Serial.print("...Loading-Up..."); 
+                
+        //Set the LCD to it's max supported Baud
+        LCD.setBaud(38400);
+        //Reconfigure the Serial interface for the new setting
+        Serial.end(); 
+        delay(500);               
+        Serial.begin(38400);                     
+                
+        //Create the Rotary Encoder connection        
 	rot.begin(EncA,EncB,PB,(*ROTATION));
-
-	//Setup the LCD display and print the initial settings
-	LCD.backlight(true);
-	delay(500);
-	LCD.goTo(0);
-	Serial.print("-=ArduinoRadio=-");
-	showFREQ();
-
         //Configure the radio
 	radio.begin(mode);
+        delay(10);
         radio.setLocale(NA); //Use the North American PTY Lookup Table
         //radio.setLocale(EU); //Use the European PTY Lookup Table
-        delay(1000);
-	radio.tuneFrequency(frequency);
+        
+        //Drop the SNR threshold to 2dB to detect more stations when seeking
+        //Leave RSSI the default
+        //Serial.println("");
+        //Serial.println("BEFORE:");
+        //Serial.println(radio.getProperty(0x1403),HEX);
+        //Serial.println(radio.getProperty(0x1404),HEX);
+        radio.seekThresholds(2, 14); 
+        //Serial.println("");
+        //Serial.println("AFTER:");
+        //Serial.println(radio.getProperty(0x1403),HEX);
+        //Serial.println(radio.getProperty(0x1404),HEX);
+        
+        //Try to get the radio to turn correctly to the default frequency
+        //On powerup, the system seems to have a problem with tuning.
+        //We will brute force the radio to tune to the station.        
+        radio.tuneFrequency(frequency); 
+        bool dummy;
+        int init_freq=0;
+        int max_attempts=10, attempts=1;        
+        while(init_freq!=frequency || attempts>=max_attempts){          
+          radio.tuneFrequency(frequency);
+          init_freq=radio.getFrequency(dummy);
+          delay(100);                 
+        }         
+        
 	volume=radio.setVolume(volume);
 
+        LCD.goTo(16);
+        delay(5);
+        Serial.print("....Finished....");   
+        delay(500);
+        
+        showFREQ();        
 	lastUpdate = millis();
 	radioText_pos = 0;
 }
@@ -135,7 +196,12 @@ void loop()
 	radio.getRDS(&tuned);     
 
         //If instructed to refresh the display, increment the counter
-        if(refresh_trigger){ refresh_cnt++; }
+        if(refresh_trigger){ 
+          if(refresh_cnt==32767)
+            refresh_cnt=0;
+          else
+            refresh_cnt++; 
+        }
 	else refresh_cnt=0;
 
         //===================DISPLAY BEHAVIOR===================      
@@ -165,10 +231,11 @@ void loop()
 	}
 	else if(refresh_cnt==150){refresh_trigger=false;}    
 
-	showRadioText();        
+        showRadioText();        
         
         //================END OF DISPLAY BEHAVIOR===================
-
+        //if(tuned.newRadioText==1)
+        //    showTIME();  
         //================MODE SWITCHING BEHAVIOR===================
         //Check to see if the Pushbutton is pressed
 	//If the PB is pressed change the state.	
@@ -191,7 +258,8 @@ void loop()
 //                      ROTARY CALLBACK FUNCTION
 //#####################################################################
 
-void ROTATION(void){  
+void ROTATION(void){
+        noInterrupts();  
 	rot.read();	
         int rot_state=0;
         if(rot.isFwdRot())
@@ -254,6 +322,7 @@ void ROTATION(void){
                 }
                 break;
         }
+        interrupts();
 }
 
 //#####################################################################
@@ -280,10 +349,12 @@ void showCALLSIGN(){
 }
 //----------------------------------------------------------------------
 void showTIME(){
+  
   Today date;
   radio.getTime(&date); 
-  LCD.goTo(0);
-  Serial.print("-=[Time ");
+  if(date.day!=0 && !strcmp(tuned.programType,"      None      ",16)){
+  LCD.goTo(16);
+  Serial.print("   Time ");
   if(date.hour<10)
     Serial.print(0,DEC);
   Serial.print(date.hour,DEC);
@@ -291,11 +362,12 @@ void showTIME(){
   if(date.minute<10)
     Serial.print(0,DEC);
   Serial.print(date.minute,DEC);
-  Serial.print("]=-");   
+  Serial.print("   ");   
+  /*
   LCD.goTo(16);
   Serial.print("   "); 
   
-  if(date.month<10)
+ if(date.month<10)
     Serial.print(0,DEC);
   Serial.print(date.month,DEC); 
   Serial.print("/");   
@@ -310,8 +382,9 @@ void showTIME(){
     Serial.print(0,DEC);  
   Serial.print(date.year,DEC);  
   
-  Serial.print("   "); 
-  delay(500); 
+  Serial.print("   ");
+  delay(500); */
+  }
 }
 //----------------------------------------------------------------------
 void showRSQ(){ //Displays the Receive Signal Quality        
@@ -401,7 +474,7 @@ void showPS(){ //Displays the Program Service Information
 }
 //----------------------------------------------------------------------
 void showRadioText(){ //Displays the Radio Text Information
-        if ((millis() - lastUpdate) > 500) {   
+        if ((millis() - lastUpdate) > 500) {                 
 		if (strlen(tuned.radioText) == 64 & refresh_trigger==false) {
 			//The refresh trigger cause the scrolling display to be delayed
 			//this allows for the user to observe the new value they changed      
