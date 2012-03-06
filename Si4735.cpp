@@ -1,6 +1,7 @@
 /* Arduino Si4735 Library
  * Written by Ryan Owens for SparkFun Electronics 5/17/11
- * Modified by Jon Carrier
+ * Altered by Wagner Sartori Junior 09/13/11
+ * Actively Being Developed by Jon Carrier
  *
  * This library is for use with the SparkFun Si4735 Shield
  * Released under the 'Buy Me a Beer' license
@@ -27,9 +28,9 @@ SPR1 and SPR0 - Sets the SPI speed, 00 is fastest (4MHz) 11 is slowest (250KHz)
 
 */
 #include "Si4735.h"
-
-
+#define READ_DELAY 10
 //This is just a constructor.
+//Default values are assigned to various private variables
 Si4735::Si4735(){
 	_mode		= FM;
 	_locale	= NA;
@@ -40,6 +41,7 @@ Si4735::Si4735(){
 	_day		= 0;
 	_hour		= 0;
 	_minute	= 0;	
+	_newRadioText = 0;
 	clearRDS();
 }
 
@@ -68,9 +70,9 @@ void Si4735::begin(char mode){
 	digitalWrite(INT_PIN, HIGH);
 	delay(1);
 	digitalWrite(POWER_PIN, HIGH);
-	delay(100);
+	delay(1);
 	digitalWrite(RADIO_RESET_PIN, HIGH);
-	delay(100);
+	delay(1);
 
 	//Now configure the I/O pins properly
 	pinMode(DATAOUT, OUTPUT);
@@ -81,9 +83,9 @@ void Si4735::begin(char mode){
 	digitalWrite(SS, HIGH);	
 
 	//Configure the SPI hardware
-	SPIClass::begin();
-	SPIClass::setClockDivider(SPI_CLOCK_DIV32);
-	//SPCR = (1<<SPE)|(1<<MSTR);	//Enable SPI HW, Master Mode	
+	//SPIClass::begin();
+	//SPIClass::setClockDivider(SPI_CLOCK_DIV32);
+	SPCR = (1<<SPE)|(1<<MSTR);//|(1<<SPR1)|(1<<SPR0);	//Enable SPI HW, Master Mode	
 	
 	//Send the POWER_UP command
 	switch(_mode){
@@ -110,42 +112,31 @@ void Si4735::begin(char mode){
 	delay(10);
 
 	//Set the volume to the current value.
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _volume);
-	sendCommand(command, 6);
-	delay(10);
+	setVolume(_volume);
 
 	//Disable Mute
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x01, 0x00, 0x00);
-	sendCommand(command, 6);
-	delay(1);
+	unmute();
 
 	//Enable RDS
 	//Only store good blocks and ones that have been corrected
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x15, 0x02, 0xAA, 0x01);
+	setProperty(0x1502, 0xAA01);	
 	//Only store good blocks
-	//sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x15, 0x02, 0x00, 0x01);
-	sendCommand(command, 6);
-	delay(10);
+	//setProperty(0x1502, 0x0001)
+	
 
 	//Set the seek band for the desired mode (AM and FM can use default values)
 	switch(_mode){
 		case SW:
 			//Set the lower band limit for Short Wave Radio to 2300 kHz
-			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x34, 0x00, 0x08, 0xFC);
-			sendCommand(command, 6);
-			delay(1);
+			setProperty(0x3400, 0x08FC);			
 			//Set the upper band limit for Short Wave Radio to 23000kHz
-			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x34, 0x01, 0x59, 0xD8);
-			sendCommand(command, 6);			
-			delay(1);
+			setProperty(0x3401, 0x59D8);
 			break;
 		case LW:
 			//Set the lower band limit for Long Wave Radio to 152 kHz
-			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x34, 0x00, 0x00, 0x99);
-			sendCommand(command, 6);
+			setProperty(0x3400, 0x0099);			
 			//Set the upper band limit for Long Wave Radio to 279 kHz
-			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x34, 0x01, 0x01, 0x17);
-			sendCommand(command, 6);			
+			setProperty(0x3401, 0x0117);							
 			break;
 		default:
 			break;
@@ -194,7 +185,7 @@ void Si4735::tuneFrequency(word frequency){
 	delay(100);	
 	clearRDS();
 }
-
+#if defined(USE_SI4735_REV)
 void Si4735::getREV(char*FW,char*CMP,char*REV){
 	//FW = Firmware and it is a 2 character array
 	//CMP = Component Revision and it is a 2 character array
@@ -216,8 +207,8 @@ void Si4735::getREV(char*FW,char*CMP,char*REV){
 	CMP[2]='\0';
 	*REV=response[8];	
 }
-
-
+#endif //USE_SI4735_REV
+#if defined(USE_SI4735_FREQUENCY)
 word Si4735::getFrequency(bool &valid){
 	char response [16];
 	word frequency;	
@@ -255,7 +246,8 @@ word Si4735::getFrequency(bool &valid){
 
 	return frequency;
 }
-
+#endif //USE_SI4735_FREQUENCY
+#if defined(USE_SI4735_SEEK)
 void Si4735::seekUp(void){
 	//Use the current mode selection to seek up.
 	switch(_mode){
@@ -296,6 +288,34 @@ void Si4735::seekDown(void){
 	clearRDS();
 }
 
+void Si4735::seekThresholds(byte SNR, byte RSSI){
+	//Use the current mode selection to set the threshold properties.	
+	switch(_mode){
+		case FM:
+			if(SNR>127)SNR=127;
+			else if(SNR<0)SNR=0;
+			if(RSSI>127)RSSI=127;
+			else if(RSSI<0)RSSI=0;
+			setProperty(0x1403, (word)SNR);	
+			setProperty(0x1404, (word)RSSI);				
+			break;
+		case AM:
+		case SW:
+		case LW:	
+			if(SNR>63)SNR=63;
+			else if(SNR<0)SNR=0;
+			if(RSSI>63)RSSI=63;
+			else if(RSSI<0)RSSI=0;
+			setProperty(0x1403, (word)SNR);	
+			setProperty(0x1404, (word)RSSI);				
+			break;
+		default:
+			break;
+	}
+}
+
+#endif //USE_SI4735_SEEK
+#if defined(USE_SI4735_RDS)
 bool Si4735::readRDS(void){
 	char status;
 	char response [16];	
@@ -328,6 +348,7 @@ bool Si4735::readRDS(void){
 	} else {
 		pi = MAKEINT(response[8], response[9]);
 	}
+	#if defined(USE_SI4735_CALLSIGN)
 	if(pi>=21672){
  		_csign[0]='W';
 		pi-=21672;
@@ -353,10 +374,12 @@ bool Si4735::readRDS(void){
 		_csign[3]='N';
 		_csign[4]='\0';
 	}
+	#endif //USE_SI4735_CALLSIGN
 
 	// Groups 0A & 0B
 	// Basic tuning and switching information only
 	if (type == 0) {
+	#if defined(USE_SI4735_PTY)
 		bool ta = bitRead(response[7], 4);
 		bool ms = bitRead(response[7], 3);
 		byte addr = response[7] & 3;
@@ -369,11 +392,14 @@ bool Si4735::readRDS(void){
 			if (response[11] != '\0')
 				_ps[addr*2+1] = response[11];
 			ps_rdy=(addr==3);
-		}		
+		}	
+		printable_str(_ps, 8);
+	#endif //USE_SI4735_PTY
 	}
 	// Groups 2A & 2B
 	// Radio Text
 	else if (type == 2) {
+		#if defined(USE_SI4735_RADIOTEXT)
 		// Get their address
 		int addressRT = response[7] & 15; // Get rightmost 4 bits
 		bool ab = bitRead(response[7], 4);
@@ -417,16 +443,23 @@ bool Si4735::readRDS(void){
 		if(cr){
 			for (byte i=len; i<64; i++) _disp[i] = ' ';
 		}
-		if (ab != _ab) {
+		if (ab != _ab) {			
 			for (byte i=0; i<64; i++) _disp[i] = ' ';
-			_disp[64] = '\0';
+			_disp[64] = '\0';			
+			_newRadioText=1;
+		}
+		else{
+			_newRadioText=0;
 		}
 		_ab = ab;
+		printable_str(_disp, 64);
+		#endif //USE_SI4735_RADIOTEXT
 	}
 	// Group 4A	Clock-time and Date
 	//Note the time is localized but the date is the UTC date
 	//Setting offset to 0 will make the time referenced to UTC
 	else if (type == 4 && version == 0){	
+		#if defined(USE_SI4735_DATE_TIME)
 		unsigned long MJD = (response[7]&3<<15 | u_int(response[8])<<7 | (response[9]>>1)&127)&0x01FFFF;
 		u_int Y=(MJD-15078.2)/365.25;
 		u_int M=(MJD-14956.1-u_int(Y*365.25))/30.6001;		
@@ -447,21 +480,22 @@ bool Si4735::readRDS(void){
 		_minute=((response[10]&15)<<2 | (response[11]>>6)&3);			
 		_hour= (_hour + (offset/2) + 24)%24;		
 		_minute=(_minute + (offset)%2*30 + 60)%60;
-	}
- 	printable_str(_disp, 64);
-	printable_str(_ps, 8);
+		#endif //USE_SI4735_DATE_TIME
+	}	
 	delay(40);
 	//This is a simple way to indicate when the ps data has been fully refreshed.
 	return ps_rdy; 
 }
+
  
 void Si4735::getRDS(Station * tunedStation) {
 	strcpy(tunedStation->programService, _ps);
 	strcpy(tunedStation->radioText, _disp);	
 	strcpy(tunedStation->programType, _pty);
-	strcpy(tunedStation->callSign, _csign);		
+	strcpy(tunedStation->callSign, _csign);
+	tunedStation->newRadioText=_newRadioText;		
 }
-
+#if defined(USE_SI4735_DATE_TIME)
 void Si4735::getTime(Today * date){
 	date->year=_year;
 	date->month=_month;
@@ -469,7 +503,9 @@ void Si4735::getTime(Today * date){
 	date->hour=_hour;
 	date->minute=_minute;
 }
-
+#endif //USE_SI4735_DATE_TIME
+#endif //USE_SI4735_RDS
+#if defined(USE_SI4735_RSQ) 
 void Si4735::getRSQ(Metrics * RSQ){
 	//This function gets the Received Signal Quality Information
 	char response [16];
@@ -510,15 +546,14 @@ void Si4735::getRSQ(Metrics * RSQ){
 		RSQ->FREQOFF=0;
 	}
 }
-
+#endif
+#if defined(USE_SI4735_VOLUME)
 byte Si4735::volumeUp(void){
 	//If we're not at the maximum volume yet, increase the volume
 	if(_volume < 63){
 		_volume+=1;
 		//Set the volume to the current value.
-		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _volume);
-		sendCommand(command, 6);
-		delay(10);		
+		setProperty(0x4000, (word)_volume);	
 	}
 	return _volume;
 }
@@ -528,9 +563,7 @@ byte Si4735::volumeDown(void){
 	if(_volume > 0){
 		_volume-=1;
 		//Set the volume to the current value.
-		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _volume);
-		sendCommand(command, 6);
-		delay(10);		
+		setProperty(0x4000, (word)_volume);	
 	}
 	return _volume;
 }
@@ -539,9 +572,7 @@ byte Si4735::setVolume(byte value){
 	if(value <= 63 && value >= 0){
 		_volume=value;
 		//Set the volume to the current value.
-		sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x00, 0x00, _volume);
-		sendCommand(command, 6);
-		delay(10);		
+		setProperty(0x4000, (word)_volume);
 	}
 	return _volume;
 }
@@ -549,20 +580,18 @@ byte Si4735::setVolume(byte value){
 byte Si4735::getVolume(void){	
 	return _volume;
 }
-
+#endif //USE_SI4735_VOLUME
+#if defined(USE_SI4735_MUTE)
 void Si4735::mute(void){
 	//Disable Mute
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x01, 0x00, 0x03);
-	sendCommand(command, 6);
-	delay(1);
+	setProperty(0x4001, 0x0003);
 }
 
 void Si4735::unmute(void){
 	//Disable Mute
-	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x40, 0x01, 0x00, 0x00);
-	sendCommand(command, 6);
-	delay(1);
+	setProperty(0x4001, 0x0000);
 }
+#endif //USE_SI4735_MUTE
 
 char Si4735::getStatus(void){
 	char response;
@@ -589,28 +618,28 @@ void Si4735::end(void){
 	sendCommand(command, 1);
 	delay(1);
 }
-
+#if defined(USE_SI4735_LOCALE)
 void Si4735::setLocale(byte locale){
 	_locale=locale;	
 	//Set the deemphasis to match the locale
 	switch(_locale){
-		case NA:
-			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x11, 0x00, 0x00, 0x02);			
+		case NA:			
+			setProperty(0x1100, 0x0002);		
 			break;
 		case EU:
-			sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, 0x11, 0x00, 0x00, 0x01);
+			setProperty(0x1100, 0x0001);
 			break;
 		default:
 			break;
-	}	
-	//Send the command
-	sendCommand(command, 6);
+	}
 }
 
 byte Si4735::getLocale(void){
 	return _locale;
 }
+#endif //USE_SI4735_LOCALE
 
+#if defined(USE_SI4735_MODE)
 void Si4735::setMode(char mode){
 	end();
 	begin(mode);
@@ -618,6 +647,21 @@ void Si4735::setMode(char mode){
 
 char Si4735::getMode(void){
 	return _mode;
+}
+#endif //USE_SI4735_MODE
+
+void Si4735::setProperty(word address, word value){	
+	sprintf(command, "%c%c%c%c%c%c", 0x12, 0x00, (address>>8)&255, address&255, (value>>8)&255, value&255);
+	sendCommand(command, 6);
+	delay(1);
+}
+
+word Si4735::getProperty(word address){	
+	char response [16];	
+	sprintf(command, "%c%c%c%c", 0x13, 0x00, (address>>8)&255, address&255);
+	sendCommand(command, 4);
+	getResponse(response);
+	return response[2]<<8 | response[3];
 }
 
 /*******************************************
@@ -642,7 +686,7 @@ void Si4735::sendCommand(char * command, int length){
   for(int i=length; i<8; i++)spiTransfer(0x00);  //Fill the rest of the command arguments with 0
   digitalWrite(SS, HIGH);  //End the sequence
 }
-
+#if defined(USE_SI4735_PTY)
 void Si4735::ptystr(byte pty){	
 	// Translate the Program Type bits to the RBDS 16-character fields	
 	if(pty>=0 && pty<32){
@@ -703,13 +747,13 @@ void Si4735::ptystr(byte pty){
 		}
 		else if(_locale==EU){
 			byte LUT[32] = {0, 1, 32, 2, 
-								 3, 33, 34, 35,
-								 36, 37, 9, 5, 
-								 38, 39, 40, 41,
-								 29, 42, 43, 44, 
-								 20, 45, 46, 47,
-								 14, 10, 48, 11, 
-								 49, 50, 30, 31 };
+					3, 33, 34, 35,
+					36, 37, 9, 5, 
+					38, 39, 40, 41,
+					29, 42, 43, 44, 
+					20, 45, 46, 47,
+					14, 10, 48, 11, 
+					49, 50, 30, 31 };
 			strcpy(_pty, pty_LUT[LUT[pty]]);
 		}
 		else{
@@ -720,6 +764,7 @@ void Si4735::ptystr(byte pty){
 		strcpy(_pty, "    PTY ERROR   ");
 	}	
 }
+#endif //USE_SI4735_PTY
 
 void Si4735::printable_str(char * str, int length){
 	for(int i=0;i<length;i++){
