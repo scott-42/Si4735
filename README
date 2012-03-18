@@ -2,6 +2,8 @@ Arduino Si4735 Library
 Written by Ryan Owens for SparkFun Electronics - 5/17/11
 Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
 Actively Being Developed by Jon Carrier <jjcarrier@gmail.com>
+Minor refactoring and cosmetic changes by Radu - Eosif Mihailescu <radu.mihailescu@linux360.ro> 03/18/12
+
 
 This library is for use with the SparkFun Si4735 Shield
 Released under the 'Buy Me a Beer' license
@@ -9,8 +11,10 @@ Released under the 'Buy Me a Beer' license
 
 See the example sketches to learn how to use the library in your code.
 
-For the reading commands work, you'll need to add a diode between GPO1 and pin 12 or by using a logic level shifter circuit. 
-See http://wiki.wsartori.com/wiki/Trunet_Radio for more information on adding in the diode.
+For the reading of status information off the chip to work, you'll need to add
+a diode between GPO1 and pin 12 or use a logic level shifter circuit. 
+See http://wiki.wsartori.com/wiki/Trunet_Radio for more information on adding
+in the diode.
 
 For general questions and updates on this library please see:
 http://carrierfrequency.blogspot.com/2011/08/si4735-amfmswlw-radio-project.html
