@@ -1,6 +1,7 @@
 /*
 * Si4735 Serial Example Sketch
 * Written by Ryan Owens for SparkFun Electronics
+* Updated for the current state of the library by Radu - Eosif Mihailescu
 *
 * This example sketch allows a user to construct their own commands for the
 * Si4735 and send them through the serial terminal.
@@ -82,78 +83,78 @@ void loop()
     //Depending on the incoming character, decide what to do.
     switch(currentDigit){
       case 'R':
-          //Get the latest response from the radio.
-          radio.getResponse(response);
-          //Print all 16 bytes in the response to the terminal.      
-          Serial.print("Si4735 RSP");
-          for(int i = 0; i < 4; i++) {
-              if(i) Serial.print("           ");
-              else Serial.print(" ");
-              for(int j = 0; j < 4; j++) {
-                  Serial.print("0x");
-                    Serial.print(response[i * 4 + j], HEX);
-                  Serial.print(" [");
-                  Serial.print(response[i * 4 + j], BIN);
-                  Serial.print("]");
-                  if(j != 3) Serial.print(", ");
-                  else
-                      if(i != 3) Serial.print(",");
-              };
-              Serial.println("");
+        //Get the latest response from the radio.
+        radio.getResponse(response);
+        //Print all 16 bytes in the response to the terminal.      
+        Serial.print("Si4735 RSP");
+        for(int i = 0; i < 4; i++) {
+          if(i) Serial.print("           ");
+          else Serial.print(" ");
+          for(int j = 0; j < 4; j++) {
+            Serial.print("0x");
+            Serial.print(response[i * 4 + j], HEX);
+            Serial.print(" [");
+            Serial.print(response[i * 4 + j], BIN);
+            Serial.print("]");
+            if(j != 3) Serial.print(", ");
+            else
+              if(i != 3) Serial.print(",");
           };
-          break;
+          Serial.println("");
+        };
+        break;
       case 'S':
-          status = radio.getStatus();
-          Serial.print("Si4735 STS 0x");
-          Serial.print(status, HEX);
-          Serial.print(" [");
-          Serial.print(status, BIN);
-          Serial.println("]");
-          break;
+        status = radio.getStatus();
+        Serial.print("Si4735 STS 0x");
+        Serial.print(status, HEX);
+        Serial.print(" [");
+        Serial.print(status, BIN);
+        Serial.println("]");
+        break;
       case 'X':
-          collectedDigits[0] = '\0';
-          Serial.println("Command string truncated, start over.");
-          break;
+        collectedDigits[0] = '\0';
+        Serial.println("Command string truncated, start over.");
+        break;
       //If we get a LF or CR character, send the command to the radio.
       case '\n':
       case '\r':
-          //Silently ignore empty lines, this also gives us CR & LF support
-          numDigits = strlen(collectedDigits);
-          if(numDigits) {
-              if(numDigits % 2){    
-                  memset(command, 0x00, 8);
-                  for(int i = 0; i++; i < (numDigits / 2)) {
-                      strncpy(&oneHexValue[2], &collectedDigits[i * 2], 2);
-                      command[i] = strtoul(oneHexValue, NULL, 16);
-                  }
-                  //End command string echo
-                  Serial.println("");
-                  //Send the current command to the radio.
-                  radio.sendCommand(command[0], command[1], command[2],
-                                    command[3], command[4], command[5],
-                                    command[6], command[7]);
-              } else Serial.println("Odd number of hex digits, need even!");
-          } 
-          break;
+        numDigits = strlen(collectedDigits);
+        //Silently ignore empty lines, this also gives us CR & LF support
+        if(numDigits) {
+          if(numDigits % 2){    
+            memset(command, 0x00, 8);
+            for(int i = 0; i++; i < (numDigits / 2)) {
+              strncpy(&oneHexValue[2], &collectedDigits[i * 2], 2);
+              command[i] = strtoul(oneHexValue, NULL, 16);
+            }
+            //End command string echo
+            Serial.println("");
+            //Send the current command to the radio.
+            radio.sendCommand(command[0], command[1], command[2],
+                              command[3], command[4], command[5],
+                              command[6], command[7]);
+          } else Serial.println("Odd number of hex digits, need even!");
+        } 
+        break;
       case '?':
-          Serial.println("* r      - display response (long read)");
-          Serial.println("* s      - display status (short read)");
-          Serial.println("* x      - flush (empty) command string and start over");
-          Serial.println("* 0-9a-f - compose command, at most 16 hex digits (forming an 8 byte");
-          Serial.println("           command) are accepted");
-          Serial.println("* CR/LF  - send command");
-          Serial.println("* ?      - display this list");
-          break;
+        Serial.println("* r      - display response (long read)");
+        Serial.println("* s      - display status (short read)");
+        Serial.println("* x      - flush (empty) command string and start over");
+        Serial.println("* 0-9a-f - compose command, at most 16 hex digits (forming an 8 byte");
+        Serial.println("           command) are accepted");
+        Serial.println("* CR/LF  - send command");
+        Serial.println("* ?      - display this list");
+        break;
       //If we get any other character and it's a valid hexidecimal character,
       //copy it to the command string.
       default: 
         if((currentDigit >= '0' && currentDigit <= '9') || 
            (currentDigit >= 'A' && currentDigit <= 'F'))
-            if(strlen(collectedDigits) < 16) {
-                strncat(collectedDigits, &currentDigit, 1);
-                //Echo the command string as it is composed
-                Serial.print(currentDigit);
-            } else Serial.println("Too many hex digits, 16 maximum!");
+          if(strlen(collectedDigits) < 16) {
+            strncat(collectedDigits, &currentDigit, 1);
+            //Echo the command string as it is composed
+            Serial.print(currentDigit);
+          } else Serial.println("Too many hex digits, 16 maximum!");
         else Serial.println("Invalid command!");
         break;
     }
