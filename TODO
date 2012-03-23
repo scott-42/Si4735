@@ -1,3 +1,6 @@
+-> fix all TODOs in the files themselves
+-> add HAL support to the code
+-> make getRevision() return everything
 -> implement proper PI decoding (worldwide, that is)
 -> implement missing parts of the RDS standard
 -> move RDS into its own class to allow throwing it away to save memory

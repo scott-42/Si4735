@@ -1,18 +1,16 @@
 /* Arduino Si4735 Library
- * Written by Ryan Owens for SparkFun Electronics 5/17/11
- * Altered by Wagner Sartori Junior 09/13/11 
- * Actively Being Developed by Jon Carrier
- * Minor refactoring and cosmetic changes by Radu - Eosif Mihailescu 3/15/12
+ * See the README file for author and licensing information. In case it's
+ * missing from your distribution, use the one here as the authoritative
+ * version: https://github.com/csdexter/Si4735/blob/master/README
  *
- * This library is for use with the SparkFun Si4735 Shield or Breakout Board
- * Released under the 'Buy Me a Beer' license
- * (If we ever meet, you buy me a beer)
- *
+ * This library is for use with the SparkFun Si4735 Shield or Breakout Board.
  * See the example sketches to learn how to use the library in your code.
+ *
+ * This is the main include file for the library.
  *
  * #define SI4735_DEBUG to get serial console dumps of commands sent and
  * responses received from the chip.
-*/
+ */
 
 #ifndef _SI4735_H_INCLUDED
 #define _SI4735_H_INCLUDED
@@ -23,30 +21,30 @@
 # include <WProgram.h>  
 #endif
 
-//Assign the radio pin numbers
-#define SI4735_PIN_POWER	8
-#define	SI4735_PIN_RESET	9
-#define SI4735_PIN_GPO2	2
+//Assign the default radio pin numbers (shield version)
+#define SI4735_PIN_POWER 8
+#define SI4735_PIN_RESET 9
+#define SI4735_PIN_GPO2 2
 
-//Define the SPI Pin Numbers
+//Assign the default SPI pin numbers (shield version)
 #define SI4735_PIN_SDIO MOSI
 #define SI4735_PIN_GPO1 MISO
-#define SI4735_PIN_SCLK	SCK
+#define SI4735_PIN_SCLK SCK
 #define SI4735_PIN_SEN SS
 
 //List of possible modes for the Si4735 Radio
-#define SI4735_MODE_LW	0
-#define SI4735_MODE_AM	1
-#define SI4735_MODE_SW	2
-#define SI4735_MODE_FM	3
+#define SI4735_MODE_LW 0
+#define SI4735_MODE_AM 1
+#define SI4735_MODE_SW 2
+#define SI4735_MODE_FM 3
 
 //Define the Locale options
-#define SI4735_LOCALE_US	0
-#define SI4735_LOCALE_EU	1
+#define SI4735_LOCALE_US 0
+#define SI4735_LOCALE_EU 1
 
 //Define Si4735 Command codes
 #define SI4735_CMD_POWER_UP 0x01
-#define SI4735_CMD_GET_REV  0x10
+#define SI4735_CMD_GET_REV 0x10
 #define SI4735_CMD_POWER_DOWN 0x11
 #define SI4735_CMD_SET_PROPERTY 0x12
 #define SI4735_CMD_GET_PROPERTY 0x13
@@ -61,7 +59,7 @@
 #define SI4735_CMD_FM_AGC_STATUS 0x27
 #define SI4735_CMD_FM_AGC_OVERRIDE 0x28
 #define SI4735_CMD_AM_TUNE_FREQ 0x40
-#define	SI4735_CMD_AM_SEEK_START 0x41
+#define SI4735_CMD_AM_SEEK_START 0x41
 #define SI4735_CMD_AM_TUNE_STATUS 0x42
 #define SI4735_CMD_AM_RSQ_STATUS 0x43
 #define SI4735_CMD_AM_AGC_STATUS 0x47
@@ -71,7 +69,7 @@
 #define SI4735_CMD_GPIO_CTL 0x80
 #define SI4735_CMD_GPIO_SET 0x81
 
-//Define Si4735 Command flags (bits fed into the chip)
+//Define Si4735 Command flags (bits fed to the chip)
 #define SI4735_FLG_CTSIEN 0x80
 //Renamed to GPO2IEN from GPO2OEN in datasheet to avoid conflict with real
 //GPO2OEN below. Also makes more sense this way: GPO2IEN -> enable GPO2 as INT
@@ -110,6 +108,7 @@
 #define SI4735_FLG_BLETHD_35 0x02
 #define SI4735_FLG_BLETHD_U (SI4735_FLG_BLETHD_12 | SI4735_FLG_BLETHD_35)
 #define SI4735_FLG_RDSEN 0x01
+#define SI4735_FLG_DEEMPH_NONE 0x00
 #define SI4735_FLG_DEEMPH_50 0x01
 #define SI4735_FLG_DEEMPH_75 0x02
 #define SI4735_FLG_RSQREP 0x08
@@ -131,7 +130,7 @@
 #define SI4735_FUNC_VER 0x0F
 
 //Define Si4735 Output modes
-#define SI4735_OUT_RDS 0x00
+#define SI4735_OUT_RDS 0x00 // RDS only
 #define SI4735_OUT_ANALOG 0x05
 #define SI4735_OUT_DIGITAL1 0x0B // DCLK, LOUT/DFS, ROUT/DIO
 #define SI4735_OUT_DIGITAL2 0xB0 // DCLK, DFS, DIO
@@ -245,23 +244,23 @@
 //NOTE: RDS does not provide DST information so we don't provide tm_isdst
 //NOTE: we will provide tm_wday (day of week) but not tm_yday (day of year)
 typedef struct {
-	byte tm_min;
-	byte tm_hour;
-	byte tm_mday;
-	byte tm_mon;
-	word tm_year;
+    byte tm_min;
+    byte tm_hour;
+    byte tm_mday;
+    byte tm_mon;
+    word tm_year;
     byte tm_wday;
 }  Si4735_RDS_Time;
 
 //This holds the current station reception metrics as given by the chip. See
 //the Si4735 datasheet for a detailed explanation of each member.
 typedef struct {
-	byte STBLEND;
+    byte STBLEND;
     boolean PILOT;
-	byte RSSI;
-	byte SNR;
-	byte MULT;
-	signed char FREQOFF;
+    byte RSSI;
+    byte SNR;
+    byte MULT;
+    signed char FREQOFF;
 } Si4735_RX_Metrics;
 
 //This holds the current tuned-in station information, as gathered from the 
@@ -270,14 +269,13 @@ typedef struct {
     //PI is already taken :-(
     word programIdentifier;
     boolean TP, TA, MS;
-	char callSign[5];
-    byte PTY, DICC;	
-	char programService[9];
+    byte PTY, DICC;    
+    char programService[9];
     char programTypeName[9];
-	char radioText[65];
-	Si4735_RX_Metrics signalQuality;
-	word frequency;
-	byte mode;
+    char radioText[65];
+    Si4735_RX_Metrics signalQuality;
+    word frequency;
+    byte mode;
 } Si4735_Station;
 
 class Si4735Translate
@@ -308,13 +306,11 @@ class Si4735Translate
         *              receives the decoded station call sign
         */
         void decodeCallSign(word programIdentifier, char* callSign);
-        
-    private:
 };
 
 class Si4735
 {
-	public:
+    public:
         /*
         * Description:
         *   This the constructor. It assumes SparkFun Si4735 Shield + level
@@ -329,289 +325,287 @@ class Si4735
         *   pin* - pin numbers for connections to the Si4735, with defaults
         *          for the SparkFun Si4735 Shield already provided
         */
-		Si4735(byte pinPower = SI4735_PIN_POWER,
+        Si4735(byte pinPower = SI4735_PIN_POWER,
                byte pinReset = SI4735_PIN_RESET,
                byte pinGPO2 = SI4735_PIN_GPO2, byte pinSDIO = SI4735_PIN_SDIO,
                byte pinGPO1 = SI4735_PIN_GPO1, byte pinSCLK = SI4735_PIN_SCLK,
                byte pinSEN = SI4735_PIN_SEN);
-		
-		/*
-		* Description: 
-		*	Initializes the Si4735, powers up the radio in the desired mode 
+        
+        /*
+        * Description: 
+        *   Initializes the Si4735, powers up the radio in the desired mode 
         *   and limits the bandwidth appropriately.
-		* 	This function must be called before any other radio command.
-		*	The bands are set as follows:
-		*	LW - 152 to 279 kHz
-		*	AM - 520 to 1710 kHz
-		*	SW - 2.3 to 23 MHz
-		*	FM - 87.5 to 107.9 MHz
-		* Parameters:
-		*	mode - The desired radio mode, one of the SI4735_MODE_* constants.
-		*/
-		void begin(byte mode);
-		
-		/*
-		* Description: 
-		*	Used to send a command and its arguments to the radio chip.
-		* Parameters:
-		*	command - the command byte, see datasheet and use one of the
+        *   This function must be called before any other radio command.
+        *   The band limits are set as follows:
+        *     LW - 152 to 279 kHz
+        *     AM - 520 to 1710 kHz
+        *     SW - 2.3 to 23 MHz
+        *     FM - 87.5 to 107.9 MHz
+        * Parameters:
+        *   mode - The desired radio mode, one of the SI4735_MODE_* constants.
+        */
+        void begin(byte mode);
+        
+        /*
+        * Description: 
+        *   Used to send a command and its arguments to the radio chip.
+        * Parameters:
+        *   command - the command byte, see datasheet and use one of the
                       SI4735_CMD_* constants
         *   arg1-7  - command arguments, see the Si4735 Programmers Guide.
-		*/
-		void sendCommand(byte command, byte arg1 = 0, byte arg2 = 0,
+        */
+        void sendCommand(byte command, byte arg1 = 0, byte arg2 = 0,
                          byte arg3 = 0, byte arg4 = 0, byte arg5 = 0,
                          byte arg6 = 0, byte arg7 = 0);
 
-		/*
-		* Description: 
-		*	Acquires certain revision parameters from the Si4735 chip. Please
+        /*
+        * Description: 
+        *   Acquires certain revision parameters from the Si4735 chip. Please
         *   note that, despite the command also returning the chip part
         *   number, we do not return it from this function and the whole code
         *   assumes we are indeed talking to a Si4735.
-		* Parameters:
-		*	FW  - Firmware Version and it is a 2 character string
-		*	CMP - Component Revision and it is a 2 character string
-		*	REV - Chip Die Revision and it is a single character
+        * Parameters:
+        *   FW  - Firmware Version and it is a 2 character string
+        *   CMP - Component Revision and it is a 2 character string
+        *   REV - Chip Die Revision and it is a single character
         *   Set to NULL (or ignore) whichever parameter you don't care about.
         * Chips are usually referred in datasheets as "Si4735-$REV$FW", for
         * example "Si4735-C40" for the chip on the Sparkfun Shield.
-		*/
-		void getRevision(char* FW = NULL, char* CMP = NULL, char* REV = NULL);
+        */
+        void getRevision(char* FW = NULL, char* CMP = NULL, char* REV = NULL);
 
-		/*
-		* Description: 
-		*	Used to to tune the radio to a desired frequency. The library uses
+        /*
+        * Description: 
+        *   Used to to tune the radio to a desired frequency. The library uses
         *   the mode indicated via begin() to determine how to set the 
         *   frequency.
-		* Parameters:
-		*	frequency - The frequency to tune to, in kHz (or in 10kHz if using
+        * Parameters:
+        *   frequency - The frequency to tune to, in kHz (or in 10kHz if using
         *               FM mode).
-		*/
-		void setFrequency(word frequency);
+        */
+        void setFrequency(word frequency);
 
-		/*
-		* Description:
-		*	Gets the frequency the chip is currently tuned to.	
+        /*
+        * Description:
+        *   Gets the frequency the chip is currently tuned to.    
         * Parameters:
         *   valid - will be set to true if the chip currently detects a valid
         *           (as defined by current Seek/Tune criteria, see
         *           FM_SEEK_TUNE_* properties in the datasheet) signal on this
         *           frequency. Omit if you don't care.
-		*/
-		word getFrequency(boolean* valid = NULL);
+        */
+        word getFrequency(boolean* valid = NULL);
 
-		/*
-		* Description:
-		*	Commands the radio to seek up to the next valid channel.
+        /*
+        * Description:
+        *   Commands the radio to seek up to the next valid channel.
         * Parameters:
         *   wrap - set to true to allow the seek to wrap around the current
         *          band.
-		*/
-		void seekUp(boolean wrap = true);
+        */
+        void seekUp(boolean wrap = true);
 
-		/*
-		* Description:
-		*	Commands the radio to seek down to the next valid channel.
+        /*
+        * Description:
+        *   Commands the radio to seek down to the next valid channel.
         * Parameters:
         *   wrap - set to true to allow the seek to wrap around the current
         *          band.
-		*/
-		void seekDown(boolean wrap = true);
-		
-		/*
-		* Description:
-		*	Adjust the threshold levels of the seek function.
-		*   FM Ranges:
-		*	  SNR = [0-127] in dB, default = 3dB
-		*	  RSSI = [0-127] in dBuV, default = 20dBuV
-		*   AM Ranges:
-		*	  SNR = [0-63] in dB, default = 5dB
-		*	  RSSI = [0-63] in dBuV, default = 19dBuV
-		*/	
-		void setSeekThresholds(byte SNR, byte RSSI);
+        */
+        void seekDown(boolean wrap = true);
+        
+        /*
+        * Description:
+        *   Adjust the threshold levels of the seek function.
+        *   FM Ranges:
+        *     SNR = [0-127] in dB, default = 3dB
+        *     RSSI = [0-127] in dBuV, default = 20dBuV
+        *   AM Ranges:
+        *     SNR = [0-63] in dB, default = 5dB
+        *     RSSI = [0-63] in dBuV, default = 19dBuV
+        */    
+        void setSeekThresholds(byte SNR, byte RSSI);
 
-		/*
-		*  Description:
-		*	Collects the RDS information and updates private data structures,
+        /*
+        * Description:
+        *   Collects the RDS information and updates private data structures,
         *   if new RDS information is available.
-		*	This function needs to be actively called (e.g. from loop()) in
+        *   This function needs to be actively called (e.g. from loop()) in
         *   order to see sensible information.
-		*/
-		void updateRDS(void);
+        */
+        void updateRDS(void);
 
-		/*
-		*  Description:
-		*	Pulls all context information about the currently tuned-in station
+        /*
+        * Description:
+        *   Pulls all context information about the currently tuned-in station
         *   and fills a Si4735_Station struct. This will include RDS
-        *   information for RDS-capable stations (see isRDSCapable())
-		*/
-		void getStationInfo(Si4735_Station* tunedStation);
+        *   information for RDS-capable stations (see isRDSCapable()).
+        */
+        void getStationInfo(Si4735_Station* tunedStation);
 
-		/*
-		*  Description:
-		*	Returns true if at least one RDS group has been received while
+        /*
+        * Description:
+        *   Returns true if at least one RDS group has been received while
         *   tuned into the current station.
-		*/
-	    boolean isRDSCapable(void);
+        */
+        boolean isRDSCapable(void);
 
-		/*
-		*  Description:
-		*	Retreives RDS time and date information (group 4A) using a 
+        /*
+        * Description:
+        *   Retreives RDS time and date information (group 4A) using a 
         *   Si4735_RDS_Time struct. Returns false (and does not touch
         *   timedate) if RDS CT is not available.
-        *  Parameters:
+        * Parameters:
         *   timedate - pointer to a Si4735_RDS_Time struct, to be filled with
         *              the current time and date, as given by RDS. Ignore if
         *              only interested in whether CT is available or not.
-		*/
-		boolean getRDSTime(Si4735_RDS_Time* timedate = NULL);
+        */
+        boolean getRDSTime(Si4735_RDS_Time* timedate = NULL);
 
-		/*
-		*  Description:
-		*	Retrieves the Received Signal Quality metrics using a 
+        /*
+        * Description:
+        *   Retrieves the Received Signal Quality metrics using a 
         *   Si4735_RX_Metrics struct.
-		*/
-		void getRSQ(Si4735_RX_Metrics* RSQ);
+        */
+        void getRSQ(Si4735_RX_Metrics* RSQ);
 
-		/*
-		* Description:
-		*	Sets the volume. Valid values are [0-63]. 
-		*/
-		void setVolume(byte value);
+        /*
+        * Description:
+        *   Sets the volume. Valid values are [0-63]. 
+        */
+        void setVolume(byte value);
 
-		/*
-		* Description:
-		*	Gets the current volume.
-		*/
-		byte getVolume(void);
+        /*
+        * Description:
+        *   Gets the current volume.
+        */
+        byte getVolume(void);
 
-		/*
-		* Description:
-		*	Increase the volume by 1. If the maximum volume has been 
+        /*
+        * Description:
+        *   Increase the volume by 1. If the maximum volume has been 
         *   reached, no further increase will take place and returns false;
         *   otherwise true.
-		*/
-		boolean volumeUp(void);
-		
-		/*
-		* Description:
-		*	Decrease the volume by 1. If the minimum volume has been 
+        */
+        boolean volumeUp(void);
+        
+        /*
+        * Description:
+        *   Decrease the volume by 1. If the minimum volume has been 
         *   reached, no further decrease will take place and returns false;
         *   otherwise true.
         * Parameters:
         *   alsomute - mute the output when reaching minimum volume, in 
-        *			   addition to returning false
-		*/
-		boolean volumeDown(boolean alsomute = false);
-		
-		/*
-		* Description:
-		*	Mutes the audio output, returning previous mute status.
-		*/
-		void mute(void);
+        *               addition to returning false
+        */
+        boolean volumeDown(boolean alsomute = false);
+        
+        /*
+        * Description:
+        *   Mutes the audio output.
+        */
+        void mute(void);
 
-		/*
-		* Description:
-		*	Unmutes the audio output, returning previous mute status.
-		* Parameters:
-		*   minvol - set the volume to minimum value before unmuting if true,
-		*            otherwise leave it untouched causing the chip to blast
-		*            audio out at whatever the previous volume level was.
-		*/
-		void unMute(boolean minvol = false);
+        /*
+        * Description:
+        *   Unmutes the audio output.
+        * Parameters:
+        *   minvol - set the volume to minimum value before unmuting if true,
+        *            otherwise leave it untouched causing the chip to blast
+        *            audio out at whatever the previous volume level was.
+        */
+        void unMute(boolean minvol = false);
 
-		/*
-		* Description:
-		*	Gets the current status (short read) of the radio. Learn more
+        /*
+        * Description:
+        *   Gets the current status (short read) of the radio. Learn more
         *   about the status byte in the Si4735 Datasheet.
-		* Returns:
-		*	The status of the radio.
-		*/
-		byte getStatus(void);
+        * Returns:
+        *   The status of the radio.
+        */
+        byte getStatus(void);
 
-		/*
-		* Description:
-		*	Gets the long response (long read) from the radio. Learn more
+        /*
+        * Description:
+        *   Gets the long response (long read) from the radio. Learn more
         *   about the long response in the Si4735 Datasheet.
-		* Parameters:
-		*	response - A byte[] at least 16 bytes long for the response from
+        * Parameters:
+        *   response - A byte[] at least 16 bytes long for the response from
         *              the radio to be stored in.
-		*/
-		void getResponse(byte* response);
+        */
+        void getResponse(byte* response);
 
-		/*
-		* Description:
-		*	Powers down the radio.
-		* Parameters:
-		*	hardoff - physically power down the chip if fed off a digital pin,
-		*	          otherwise just send SI4735_CMD_POWER_DOWN.
-		*/
-		void end(boolean hardoff = false);
+        /*
+        * Description:
+        *   Powers down the radio.
+        * Parameters:
+        *   hardoff - physically power down the chip if fed off a digital pin,
+        *             otherwise just send SI4735_CMD_POWER_DOWN.
+        */
+        void end(boolean hardoff = false);
 
-		/*
-		* Description:
-		*	Sets deemphasis time constant (see SI4735_FLG_DEEMPH_*).
-		*/
-		void setDeemphasis(byte deemph);
+        /*
+        * Description:
+        *   Sets deemphasis time constant (see SI4735_FLG_DEEMPH_*).
+        */
+        void setDeemphasis(byte deemph);
 
-		/*
-		* Description:
-		*	Gets the current mode of the radio (see SI4735_MODE_*).
-		*/
-		byte getMode(void);
+        /*
+        * Description:
+        *   Gets the current mode of the radio (see SI4735_MODE_*).
+        */
+        byte getMode(void);
 
-		/*
-		* Description:
-		*	Sets the Mode of the radio.
-		* Parameters:
-		*	mode - the new mode of operation (see SI4735_MODE_*).
-		*   powerdown - power the chip down first, as required by datasheet.
-		*/
-		void setMode(byte mode, boolean powerdown = true);
+        /*
+        * Description:
+        *   Sets the Mode of the radio.
+        * Parameters:
+        *   mode - the new mode of operation (see SI4735_MODE_*).
+        *   powerdown - power the chip down first, as required by datasheet.
+        */
+        void setMode(byte mode, boolean powerdown = true);
 
-		/*
-		* Description:
-		*	Sets a property value, see the SI4735_PROP_* constants and the
- 		*   Si4735 Datasheet for more information.
-		*/
-		void setProperty(word property, word value);
-		
-		/*
-		* Description:
-		*	Gets a property value, see the SI4735_PROP_* constants and the
- 		*   Si4735 Datasheet for more information.
-		* Returns:
-		*	The current value of property.
-		*/
-		word getProperty(word property);
+        /*
+        * Description:
+        *   Sets a property value, see the SI4735_PROP_* constants and the
+        *   Si4735 Datasheet for more information.
+        */
+        void setProperty(word property, word value);
+        
+        /*
+        * Description:
+        *   Gets a property value, see the SI4735_PROP_* constants and the
+        *   Si4735 Datasheet for more information.
+        * Returns:
+        *   The current value of property.
+        */
+        word getProperty(word property);
 
-	private:
-		Si4735_Station _status;
-		Si4735_RDS_Time _rdstime;
-		byte _pinPower, _pinReset, _pinGPO2, _pinSDIO, _pinGPO1, _pinSCLK,
-			 _pinSEN;
-		byte _response[16];
+    private:
+        Si4735_Station _status;
+        Si4735_RDS_Time _rdstime;
+        byte _pinPower, _pinReset, _pinGPO2, _pinSDIO, _pinGPO1, _pinSCLK,
+             _pinSEN;
+        byte _response[16];
         boolean _rdstextab, _rdsptynab, _haverds, _havect;
 
-		/*
-		* Description:
-		*	 Clears stored RDS strings so that data from other stations are
-        *    not overlayed on the current station. Note that the chip will do
-        *    that itself to the RDS FIFO whenever we Tune/Seek to another
-        *    frequency.
-   		*/
-		void resetRDS(void);
-				
-		/*
-		* Description:
-		*	Filters the string str in place to only contain printable 
-		*	characters and also replaces 0x0D (CR) with 0x00 effectively
-        *   ending the string at that point as per RDBS §3.1.5.3
-		*	Any character that is not a normal character is converted to a
- 		*	question mark ("?"), as is customary. This helps with filtering
-        *   out noisy strings.
-		*/
-		void makePrintable(char* str);
+        /*
+        * Description:
+        *   Clears stored RDS strings so that data from other stations are not
+        *   overlayed on the current station. Note that the chip will do that
+        *   itself to the RDS FIFO whenever we Tune/Seek to another frequency.
+        */
+        void resetRDS(void);
+                
+        /*
+        * Description:
+        *   Filters the string str in place to only contain printable 
+        *   characters and also replaces 0x0D (CR) with 0x00 effectively
+        *   ending the string at that point as per RDBS §3.1.5.3.
+        *   Any unprintable character is converted to a question mark ("?"),
+        *   as is customary. This helps with filtering out noisy strings.
+        */
+        void makePrintable(char* str);
         
         /*
         * Description:

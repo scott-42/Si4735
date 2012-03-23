@@ -1,16 +1,14 @@
 /* Arduino Si4735 Library
- * Written by Ryan Owens for SparkFun Electronics 5/17/11
- * Altered by Wagner Sartori Junior 09/13/11 
- * Actively Being Developed by Jon Carrier
- * Minor refactoring and cosmetic changes by Radu - Eosif Mihailescu 3/15/12
+ * See the README file for author and licensing information. In case it's
+ * missing from your distribution, use the one here as the authoritative
+ * version: https://github.com/csdexter/Si4735/blob/master/README
  *
- * This library is for use with the SparkFun Si4735 Shield or Breakout Board
- * Released under the 'Buy Me a Beer' license
- * (If we ever meet, you buy me a beer)
+ * This library is for use with the SparkFun Si4735 Shield or Breakout Board.
+ * See the example sketches to learn how to use the library in your code.
  *
  * This file contains definitions that are only used by the Si4735 class and
  * shouldn't be needed by most users.
-*/
+ */
 
 #ifndef _SI4735_PRIVATE_H_INCLUDED
 #define _SI4735_PRIVATE_H_INCLUDED

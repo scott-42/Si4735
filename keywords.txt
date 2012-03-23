@@ -1,5 +1,5 @@
 #######################################
-# Syntax Coloring Map Si4735
+# Syntax Coloring Map for Si4735
 #######################################
 
 #######################################
@@ -22,7 +22,7 @@ setFrequency	KEYWORD2
 getFrequency	KEYWORD2
 seekUp	KEYWORD2
 seekDown	KEYWORD2
-setSseekThresholds	KEYWORD2
+setSeekThresholds	KEYWORD2
 updateRDS	KEYWORD2
 getStationInfo	KEYWORD2
 isRDSCapable    KEYWORD2
@@ -121,6 +121,7 @@ SI4735_FLG_BLETHD_12	LITERAL1
 SI4735_FLG_BLETHD_35	LITERAL1
 SI4735_FLG_BLETHD_U	LITERAL1
 SI4735_FLG_RDSEN	LITERAL1
+SI4735_FLG_DEEMPH_NONE	LITERAL1
 SI4735_FLG_DEEMPH_50	LITERAL1
 SI4735_FLG_DEEMPH_75	LITERAL1
 SI4735_FLG_RSQREP	LITERAL1

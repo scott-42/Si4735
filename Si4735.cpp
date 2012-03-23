@@ -1,17 +1,14 @@
 /* Arduino Si4735 Library
- * Written by Ryan Owens for SparkFun Electronics 5/17/11
- * Altered by Wagner Sartori Junior 09/13/11
- * Actively Being Developed by Jon Carrier
- * Minor refactoring and cosmetic changes by Radu - Eosif Mihailescu 3/15/12
+ * See the README file for author and licensing information. In case it's
+ * missing from your distribution, use the one here as the authoritative
+ * version: https://github.com/csdexter/Si4735/blob/master/README
  *
- * This library is for use with the SparkFun Si4735 Shield or Breakout Board
- * Released under the 'Buy Me a Beer' license
- * (If we ever meet, you buy me a beer)
- *
- * See the header file for better function documentation.
- *
+ * This library is for use with the SparkFun Si4735 Shield or Breakout Board.
  * See the example sketches to learn how to use the library in your code.
-*/
+ *
+ * This is the main code file for the library.
+ * See the header file for better function documentation.
+ */
 
 #include "Si4735.h"
 #include "Si4735-private.h"
@@ -119,7 +116,7 @@ void Si4735::begin(byte mode){
     //Start by resetting the Si4735 and configuring the communication protocol
     //to SPI
     //TODO: implement 2-wire and 3-wire versions as well, 2-wire comes in
-    //      especially handy for pin count-constrained applications
+    //      especially handy for pin count-constrained applications.
     if(_pinPower != 0xFF) pinMode(_pinPower, OUTPUT);
     pinMode(_pinReset, OUTPUT);
     //GPO1 must be driven high after reset to select SPI
@@ -139,12 +136,12 @@ void Si4735::begin(byte mode){
     delayMicroseconds(100);
     if(_pinPower != 0xFF) {
         digitalWrite(_pinPower, HIGH);
-        //datasheet calls for 250us between VIO and RESET
+        //Datasheet calls for 250us between VIO and RESET
         delayMicroseconds(250);
     };
     digitalWrite(_pinSCLK, LOW);
-    //datasheet calls for no rising SCLK edge 300ns before RESET rising edge
-    //but Arduino can only go as low as 3us
+    //Datasheet calls for no rising SCLK edge 300ns before RESET rising edge
+    //but Arduino can only go as low as 3us.
     delayMicroseconds(5);
     digitalWrite(_pinReset, HIGH);
 
@@ -154,11 +151,11 @@ void Si4735::begin(byte mode){
 
     //Configure the SPI hardware
     SPI.begin();
-    //datahseet says Si4735 can't do more than 2.5MHz on SPI
+    //Datahseet says Si4735 can't do more than 2.5MHz on SPI
     SPI.setClockDivider(SPI_CLOCK_DIV8);
     //SCLK idle LOW, SDIO sampled on RISING edge
     SPI.setDataMode(SPI_MODE0);
-    //datasheet says Si4735 is big endian (MSB first)
+    //Datasheet says Si4735 is big endian (MSB first)
     SPI.setBitOrder(MSBFIRST);
 
     setMode(_status.mode, false);
@@ -204,7 +201,7 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
 #endif
 
     digitalWrite(_pinSEN, LOW);
-    //datasheet calls for 30ns, Arduino can only go as low as 3us
+    //Datasheet calls for 30ns, Arduino can only go as low as 3us
     delayMicroseconds(5);
     SPI.transfer(SI4735_CP_WRITE8);
     SPI.transfer(command);
@@ -215,7 +212,7 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
     SPI.transfer(arg5);
     SPI.transfer(arg6);
     SPI.transfer(arg7);
-    //datahseet calls for 5ns, Arduino can only go as low as 3us
+    //Datahseet calls for 5ns, Arduino can only go as low as 3us
     delayMicroseconds(5);
     digitalWrite(_pinSEN, HIGH);
     
@@ -436,7 +433,7 @@ void Si4735::updateRDS(void){
             
             CT = ((unsigned long)groups[2] << 16) | groups[3];
             //The standard mandates that CT must be all zeros if no time
-            //information is being provided by the current station
+            //information is being provided by the current station.
             if(!CT) break;
 
             _havect = true;            
@@ -587,11 +584,11 @@ byte Si4735::getStatus(void){
     byte response;
 
     digitalWrite(_pinSEN, LOW);
-    //datasheet calls for 30ns, Arduino can only go as low as 3us
+    //Datasheet calls for 30ns, Arduino can only go as low as 3us
     delayMicroseconds(5);
     SPI.transfer(SI4735_CP_READ1_GPO1);
     response = SPI.transfer(0x00);
-    //datahseet calls for 5ns, Arduino can only go as low as 3us
+    //Datahseet calls for 5ns, Arduino can only go as low as 3us
     delayMicroseconds(5);
     digitalWrite(_pinSEN, HIGH);
 
@@ -600,11 +597,11 @@ byte Si4735::getStatus(void){
 
 void Si4735::getResponse(byte* response){
     digitalWrite(_pinSEN, LOW);
-    //datasheet calls for 30ns, Arduino can only go as low as 3us
+    //Datasheet calls for 30ns, Arduino can only go as low as 3us
     delayMicroseconds(5);
     SPI.transfer(SI4735_CP_READ16_GPO1);
     for(int i = 0; i < 16; i++) response[i] = SPI.transfer(0x00);
-    //datahseet calls for 5ns, Arduino can only go as low as 3us
+    //Datahseet calls for 5ns, Arduino can only go as low as 3us
     delayMicroseconds(5);
     digitalWrite(_pinSEN, HIGH);
 
@@ -615,7 +612,7 @@ void Si4735::getResponse(byte* response){
         else Serial.print(" ");
         for(int j = 0; j < 4; j++) {
             Serial.print("0x");
-              Serial.print(response[i * 4 + j], HEX);
+            Serial.print(response[i * 4 + j], HEX);
             Serial.print(" [");
             Serial.print(response[i * 4 + j], BIN);
             Serial.print("]");
@@ -720,14 +717,10 @@ word Si4735::getProperty(word property){
     return word(_response[2], _response[3]);
 }
 
-/*******************************************
-*
+/*
 * Private Functions
-*
-*******************************************/
-
+*/
 void Si4735::resetRDS(void){
-    _status.callSign[0] = '\0';
     memset(_status.programService, ' ', 8);
     _status.programService[8] = '\0';
     memset(_status.programTypeName, ' ', 8);
