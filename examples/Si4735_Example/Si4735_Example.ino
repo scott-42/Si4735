@@ -55,8 +55,9 @@
 *
 */
 
-//Due to a bug in Arduino, this needs to be included here too/first
+//Due to a bug in Arduino, these need to be included here too/first
 #include <SPI.h>
+#include <Wire.h>
 
 //Add the Si4735 Library to the sketch.
 #include <Si4735.h>

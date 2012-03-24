@@ -10,6 +10,9 @@
  *
  * #define SI4735_DEBUG to get serial console dumps of commands sent and
  * responses received from the chip.
+ * #define SI4735_NOI2C or SI4735_NOSPI to exclude I2C or SPI code; please
+ * note that selecting an operation mode that has been excluded will result
+ * in undefined behaviour.
  */
 
 #ifndef _SI4735_H_INCLUDED
@@ -26,11 +29,23 @@
 #define SI4735_PIN_RESET 9
 #define SI4735_PIN_GPO2 2
 
-//Assign the default SPI pin numbers (shield version)
-#define SI4735_PIN_SDIO MOSI
-#define SI4735_PIN_GPO1 MISO
-#define SI4735_PIN_SCLK SCK
+//List of possible interfaces for Si4735
+#define SI4735_INTERFACE_SPI 0
+#define SI4735_INTERFACE_I2C 1
+
+//Assign the SPI pin numbers (shield version)
+//SDIO, GPO1 and SCLK always connected to MOSI, MISO and SCK for SPI mode
+//SDIO and SCLK always connected to SDA and SCL for I2C mode
+//SEN should be hardwired HIGH or LOW for I2C mode
 #define SI4735_PIN_SEN SS
+
+//Constants for hardwired pins
+//Chip is always powered, do not use PIN_POWER semantics
+#define SI4735_PIN_POWER_HW 0xFF
+//Chip interfaced via I2C, SEN always HIGH, device address 0xC6
+#define SI4735_PIN_SEN_HWH 0xFF
+//Chip interfaced via I2C, SEN always LOW, device address 0x22
+#define SI4735_PIN_SEN_HWL 0xFE
 
 //List of possible modes for the Si4735 Radio
 #define SI4735_MODE_LW 0
@@ -380,17 +395,18 @@ class Si4735
         *   If you're not using the Shield (e.g. using the Breakout Board) or
         *   have wired the Si4735 differently, then explicitly supply the
         *   constructor with the actual pin numbers.
-        *   Use a value of 0xFF for the power pin to tell the constructor you
-        *   haven't powered the Si4735 off a digital pin.
+        *   Use the hardwired pins constants above to tell the constructor you
+        *   haven't used (and hardwired) some of the pins.
         * Parameters:
-        *   pin* - pin numbers for connections to the Si4735, with defaults
-        *          for the SparkFun Si4735 Shield already provided
+        *   interface - interface and protocol used to talk to the chip 
+        *   pin*      - pin numbers for connections to the Si4735, with
+        *               defaults for the SparkFun Si4735 Shield already
+        *               provided.
         */
-        Si4735(byte pinPower = SI4735_PIN_POWER,
+        Si4735(byte interface = SI4735_INTERFACE_SPI, 
+               byte pinPower = SI4735_PIN_POWER,
                byte pinReset = SI4735_PIN_RESET,
-               byte pinGPO2 = SI4735_PIN_GPO2, byte pinSDIO = SI4735_PIN_SDIO,
-               byte pinGPO1 = SI4735_PIN_GPO1, byte pinSCLK = SI4735_PIN_SCLK,
-               byte pinSEN = SI4735_PIN_SEN);
+               byte pinGPO2 = SI4735_PIN_GPO2, byte pinSEN = SI4735_PIN_SEN);
         
         /*
         * Description: 
@@ -421,10 +437,8 @@ class Si4735
 
         /*
         * Description: 
-        *   Acquires certain revision parameters from the Si4735 chip. Please
-        *   note that, despite the command also returning the chip part
-        *   number, we do not return it from this function and the whole code
-        *   assumes we are indeed talking to a Si4735.
+        *   Acquires certain revision parameters from the Si4735 chip, returns
+        *   the last two digits of the chip part number (e.g. 35 for Si4735).
         * Parameters:
         *   FW  - Firmware Version and it is a 2 character string
         *   CMP - Component Revision and it is a 2 character string
@@ -433,7 +447,8 @@ class Si4735
         * Chips are usually referred in datasheets as "Si4735-$REV$FW", for
         * example "Si4735-C40" for the chip on the Sparkfun Shield.
         */
-        void getRevision(char* FW = NULL, char* CMP = NULL, char* REV = NULL);
+        byte getRevision(char* FW = NULL, char* CMP = NULL, char* REV = NULL,
+                         word* patch = NULL);
 
         /*
         * Description: 
@@ -626,7 +641,7 @@ class Si4735
     private:
         byte _pinPower, _pinReset, _pinGPO2, _pinSDIO, _pinGPO1, _pinSCLK,
              _pinSEN;
-        byte _mode, _response[16];
+        byte _mode, _response[16], _i2caddr;
         boolean _haverds;
         
         /*

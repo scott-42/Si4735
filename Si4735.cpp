@@ -12,7 +12,12 @@
 
 #include "Si4735.h"
 #include "Si4735-private.h"
-#include <SPI.h>
+#if !defined(SI4735_NOSPI)
+# include <SPI.h>
+#endif
+#if !defined(SI4835_NOI2C)
+# include <Wire.h>
+#endif
 
 void Si4735RDSDecoder::decodeRDSBlock(word block[]){
     byte grouptype;
@@ -262,40 +267,47 @@ void Si4735Translate::decodeCallSign(word programIdentifier, char* callSign){
     } else strcpy(callSign, "UNKN");
 }
 
-Si4735::Si4735(byte pinPower, byte pinReset, byte pinGPO2, byte pinSDIO,
-               byte pinGPO1, byte pinSCLK, byte pinSEN){
+Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,
+               byte pinSEN){
     _mode = SI4735_MODE_FM;
     _pinPower = pinPower;
     _pinReset = pinReset;
     _pinGPO2 = pinGPO2;
-    _pinSDIO = pinSDIO;
-    _pinGPO1 = pinGPO1;
-    _pinSCLK = pinSCLK;
     _pinSEN = pinSEN;
+    switch(interface){
+        case SI4735_INTERFACE_SPI:
+            _i2caddr = 0x00;
+            break;
+        case SI4735_INTERFACE_I2C:
+            if(_pinSEN == SI4735_PIN_SEN_HWH) _i2caddr = SI4735_I2C_ADDR_H;
+            else _i2caddr = SI4735_I2C_ADDR_L;
+            break;
+    }
 }
 
 void Si4735::begin(byte mode){
-    _mode = mode;
-
     //Start by resetting the Si4735 and configuring the communication protocol
-    //to SPI
-    //TODO: implement 2-wire and 3-wire versions as well, 2-wire comes in
-    //      especially handy for pin count-constrained applications.
     if(_pinPower != 0xFF) pinMode(_pinPower, OUTPUT);
     pinMode(_pinReset, OUTPUT);
-    //GPO1 must be driven high after reset to select SPI
-    pinMode(_pinGPO1, OUTPUT);
-    //GPO2 must be driven high after reset to select SPI
-    pinMode(_pinGPO2, OUTPUT);
-    pinMode(_pinSCLK, OUTPUT);
+    //GPO1 is connected to MISO on the shield, the latter of which defaults to
+    //INPUT mode on boot which makes it High-Z, which, in turn, allows the
+    //pull-up inside the Si4735 to work its magic.
+    //For non-Shield, non SPI configurations, leave GPO1 floating or tie to 
+    //HIGH.
+    if(!_i2caddr) {
+        //GPO2 must be driven HIGH after reset to select SPI
+        pinMode(_pinGPO2, OUTPUT);
+    };
+    pinMode((_i2caddr ? SCL : SCK), OUTPUT);
 
     //Sequence the power to the Si4735
     if(_pinPower != 0xFF) digitalWrite(_pinPower, LOW);
     digitalWrite(_pinReset, LOW);
 
-    //Configure the device for SPI communication
-    digitalWrite(_pinGPO1, HIGH);
-    digitalWrite(_pinGPO2, HIGH);
+    if(!_i2caddr) {
+        //Configure the device for SPI communication
+        digitalWrite(_pinGPO2, HIGH);
+    };
     //Use the longest of delays given in the datasheet
     delayMicroseconds(100);
     if(_pinPower != 0xFF) {
@@ -303,24 +315,38 @@ void Si4735::begin(byte mode){
         //Datasheet calls for 250us between VIO and RESET
         delayMicroseconds(250);
     };
-    digitalWrite(_pinSCLK, LOW);
-    //Datasheet calls for no rising SCLK edge 300ns before RESET rising edge
+    digitalWrite((_i2caddr ? SCL : SCK), LOW);
+    //Datasheet calls for no rising SCLK edge 300ns before RESET rising edge,
     //but Arduino can only go as low as 3us.
     delayMicroseconds(5);
     digitalWrite(_pinReset, HIGH);
+    //Datasheet calls for 30ns from rising edge of RESET until GPO1/GPO2 bus
+    //mode selection completes, but Arduino can only go as low as 3us.
+    delayMicroseconds(5);
 
-    //Now configure the I/O pins properly
-    pinMode(_pinGPO1, INPUT);
-    pinMode(_pinGPO2, INPUT); 
-
-    //Configure the SPI hardware
-    SPI.begin();
-    //Datahseet says Si4735 can't do more than 2.5MHz on SPI
-    SPI.setClockDivider(SPI_CLOCK_DIV8);
-    //SCLK idle LOW, SDIO sampled on RISING edge
-    SPI.setDataMode(SPI_MODE0);
-    //Datasheet says Si4735 is big endian (MSB first)
-    SPI.setBitOrder(MSBFIRST);
+    if(!_i2caddr) {
+        //Now configure the I/O pins properly
+        pinMode(MISO, INPUT);
+    };
+    pinMode(_pinGPO2, INPUT);
+    
+    if(!_i2caddr) {
+#if !defined(SI4735_NOSPI)
+        //Configure the SPI hardware
+        SPI.begin();
+        //Datahseet says Si4735 can't do more than 2.5MHz on SPI
+        SPI.setClockDivider(SPI_CLOCK_DIV8);
+        //SCLK idle LOW, SDIO sampled on RISING edge
+        SPI.setDataMode(SPI_MODE0);
+        //Datasheet says Si4735 is big endian (MSB first)
+        SPI.setBitOrder(MSBFIRST);
+#endif
+    } else {
+#if !defined(SI4735_NOI2C)
+        //Configure the I2C hardware
+        Wire.begin();
+#endif
+    };
 
     setMode(_mode, false);
 }
@@ -364,21 +390,38 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
     Serial.println("])");
 #endif
 
-    digitalWrite(_pinSEN, LOW);
-    //Datasheet calls for 30ns, Arduino can only go as low as 3us
-    delayMicroseconds(5);
-    SPI.transfer(SI4735_CP_WRITE8);
-    SPI.transfer(command);
-    SPI.transfer(arg1);
-    SPI.transfer(arg2);
-    SPI.transfer(arg3);
-    SPI.transfer(arg4);
-    SPI.transfer(arg5);
-    SPI.transfer(arg6);
-    SPI.transfer(arg7);
-    //Datahseet calls for 5ns, Arduino can only go as low as 3us
-    delayMicroseconds(5);
-    digitalWrite(_pinSEN, HIGH);
+    if(!_i2caddr) {
+#if !defined(SI4735_NOSPI)
+        digitalWrite(_pinSEN, LOW);
+        //Datasheet calls for 30ns, Arduino can only go as low as 3us
+        delayMicroseconds(5);
+        SPI.transfer(SI4735_CP_WRITE8);
+        SPI.transfer(command);
+        SPI.transfer(arg1);
+        SPI.transfer(arg2);
+        SPI.transfer(arg3);
+        SPI.transfer(arg4);
+        SPI.transfer(arg5);
+        SPI.transfer(arg6);
+        SPI.transfer(arg7);
+        //Datahseet calls for 5ns, Arduino can only go as low as 3us
+        delayMicroseconds(5);
+        digitalWrite(_pinSEN, HIGH);
+#endif
+    } else {
+#if !defined(SI4735_NOI2C)
+        Wire.beginTransmission(_i2caddr);
+        Wire.write(command);
+        Wire.write(arg1);
+        Wire.write(arg2);
+        Wire.write(arg3);
+        Wire.write(arg4);
+        Wire.write(arg5);
+        Wire.write(arg6);
+        Wire.write(arg7);
+        Wire.endTransmission();
+#endif
+    };
     
     //Each command takes a different time to decode inside the chip; readiness
     //for next command and, indeed, availability/validity of reponse data is
@@ -410,7 +453,7 @@ void Si4735::setFrequency(word frequency){
     if(_mode == SI4735_MODE_FM) enableRDS();
 }
 
-void Si4735::getRevision(char* FW, char* CMP, char* REV){
+byte Si4735::getRevision(char* FW, char* CMP, char* REV, word* patch){
     sendCommand(SI4735_CMD_GET_REV);
     getResponse(_response);    
 
@@ -424,7 +467,10 @@ void Si4735::getRevision(char* FW, char* CMP, char* REV){
         CMP[1] = _response[7];
         CMP[2] = '\0';
     }
-    if(REV) *REV = _response[8];    
+    if(REV) *REV = _response[8];
+    if(patch) *patch = word(_response[4], _response[5]);
+    
+    return _response[1];
 }
 
 word Si4735::getFrequency(boolean* valid){
@@ -593,29 +639,54 @@ void Si4735::unMute(boolean minvol){
 }
 
 byte Si4735::getStatus(void){
-    byte response;
+    byte response = 0;
 
-    digitalWrite(_pinSEN, LOW);
-    //Datasheet calls for 30ns, Arduino can only go as low as 3us
-    delayMicroseconds(5);
-    SPI.transfer(SI4735_CP_READ1_GPO1);
-    response = SPI.transfer(0x00);
-    //Datahseet calls for 5ns, Arduino can only go as low as 3us
-    delayMicroseconds(5);
-    digitalWrite(_pinSEN, HIGH);
-
+    if(!_i2caddr) {
+#if !defined(SI4735_NOSPI)
+        digitalWrite(_pinSEN, LOW);
+        //Datasheet calls for 30ns, Arduino can only go as low as 3us
+        delayMicroseconds(5);
+        SPI.transfer(SI4735_CP_READ1_GPO1);
+        response = SPI.transfer(0x00);
+        //Datahseet calls for 5ns, Arduino can only go as low as 3us
+        delayMicroseconds(5);
+        digitalWrite(_pinSEN, HIGH);
+#endif
+    } else {
+#if !defined(SI4735_NOI2C)
+        Wire.requestFrom((uint8_t)_i2caddr, (uint8_t)1);
+        //I2C runs at 100kHz when using the Wire library, 100kHz = 10us period
+        //so wait 10 bit-times for something to become available.
+        while(!Wire.available()) delayMicroseconds(100);
+        response = Wire.read();
+#endif
+    };
     return response;
 }
 
 void Si4735::getResponse(byte* response){
-    digitalWrite(_pinSEN, LOW);
-    //Datasheet calls for 30ns, Arduino can only go as low as 3us
-    delayMicroseconds(5);
-    SPI.transfer(SI4735_CP_READ16_GPO1);
-    for(int i = 0; i < 16; i++) response[i] = SPI.transfer(0x00);
-    //Datahseet calls for 5ns, Arduino can only go as low as 3us
-    delayMicroseconds(5);
-    digitalWrite(_pinSEN, HIGH);
+    if(!_i2caddr) {
+#if !defined(SI4735_NOSPI)
+        digitalWrite(_pinSEN, LOW);
+        //Datasheet calls for 30ns, Arduino can only go as low as 3us
+        delayMicroseconds(5);
+        SPI.transfer(SI4735_CP_READ16_GPO1);
+        for(int i = 0; i < 16; i++) response[i] = SPI.transfer(0x00);
+        //Datahseet calls for 5ns, Arduino can only go as low as 3us
+        delayMicroseconds(5);
+        digitalWrite(_pinSEN, HIGH);
+#endif
+    } else {
+#if !defined(SI4735_NOI2C)
+        Wire.requestFrom((uint8_t)_i2caddr, (uint8_t)16);
+        for(int i = 0; i < 16; i++) {
+            //I2C runs at 100kHz when using the Wire library, 100kHz = 10us
+            //period so wait 10 bit-times for something to become available.
+            while(!Wire.available()) delayMicroseconds(100);
+            response[i] = Wire.read();          
+        }
+#endif
+    };
 
 #if defined(SI4735_DEBUG)
     Serial.print("Si4735 RSP");
@@ -642,7 +713,9 @@ void Si4735::end(boolean hardoff){
     if(hardoff) {
         //datasheet calls for 10ns, Arduino can only go as low as 3us
         delayMicroseconds(5);
-        SPI.end();
+#if !defined(SI4735_NOSPI)        
+        if(!_i2caddr) SPI.end();
+#endif
         digitalWrite(_pinReset, LOW);
         if(_pinPower != 0xFF) digitalWrite(_pinPower, LOW);
     };

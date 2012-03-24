@@ -13,12 +13,18 @@
 #ifndef _SI4735_PRIVATE_H_INCLUDED
 #define _SI4735_PRIVATE_H_INCLUDED
 
-//Define Si4735 Command preambles
+//Define Si4735 SPI Command preambles
 #define SI4735_CP_WRITE8 0x48
 #define SI4735_CP_READ1_SDIO 0x80
 #define SI4735_CP_READ16_SDIO 0xC0
 #define SI4735_CP_READ1_GPO1 0xA0
 #define SI4735_CP_READ16_GPO1 0xE0
+
+//Define Si4735 I2C Addresses
+#define SI4735_I2C_READ 0x01
+#define SI4735_I2C_WRITE 0x00
+#define SI4735_I2C_ADDR_L 0x22
+#define SI4735_I2C_ADDR_H 0xC6
 
 //Define RDS block B decoding masks
 #define SI4735_RDS_TYPE_MASK 0xF800
