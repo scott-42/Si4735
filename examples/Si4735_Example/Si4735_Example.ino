@@ -63,11 +63,12 @@
 
 //Create an instance of the Si4735 named radio.
 Si4735 radio;
+Si4735RDSDecoder decoder;
 char command;
 byte mode, status;
-word frequency;
+word frequency, rdsblock[4];
 Si4735_RX_Metrics RSQ;
-Si4735_Station station;
+Si4735_RDS_Data station;
 Si4735_RDS_Time rdstime;
 char FW[3], REV;
 
@@ -87,7 +88,7 @@ void loop()
   //Attempt to update RDS information if any surfaced
   if(!(millis() % 250)) {
     radio.sendCommand(SI4735_CMD_GET_INT_STATUS);
-    radio.updateRDS();
+    if(radio.readRDSBlock(rdsblock)) decoder.decodeRDSBlock(rdsblock);
   }
   
   //Wait until a character comes in on the Serial port.
@@ -207,7 +208,7 @@ void loop()
         break;
       case 'R': 
         if(radio.isRDSCapable()) {
-          radio.getStationInfo(&station);
+          decoder.getRDSData(&station);
           Serial.println("RDS information {");
           Serial.print("PI: ");
           Serial.println(station.programIdentifier, HEX);
@@ -238,7 +239,7 @@ void loop()
         } else Serial.println("RDS not available.");
         break;
       case 'T': 
-        if(radio.getRDSTime(&rdstime)) {
+        if(decoder.getRDSTime(&rdstime)) {
           Serial.println("RDS CT (group 4A) information:");
           Serial.print(rdstime.tm_hour);
           Serial.print(":");

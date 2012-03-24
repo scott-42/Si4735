@@ -14,6 +14,176 @@
 #include "Si4735-private.h"
 #include <SPI.h>
 
+void Si4735RDSDecoder::decodeRDSBlock(word block[]){
+    byte grouptype;
+    word fourchars[2];
+
+    _status.programIdentifier = block[0];
+    grouptype = lowByte((block[1] & SI4735_RDS_TYPE_MASK) >>
+                        SI4735_RDS_TYPE_SHR);
+    _status.TP = block[1] & SI4735_RDS_TP;
+    _status.PTY = lowByte((block[1] & SI4735_RDS_PTY_MASK) >>
+                          SI4735_RDS_PTY_SHR);
+
+    switch(grouptype){
+        case SI4735_GROUP_0A:
+        case SI4735_GROUP_0B:
+        case SI4735_GROUP_15B:
+            byte DIPSA;
+            word twochars;
+
+            _status.TA = block[1] & SI4735_RDS_TA;
+            _status.MS = block[1] & SI4735_RDS_MS;
+            DIPSA = lowByte(block[1] & SI4735_RDS_DIPS_ADDRESS);
+            bitWrite(_status.DICC, 3 - DIPSA, block[1] & SI4735_RDS_DI);
+            twochars = switchEndian(block[3]);
+            strncpy(&_status.programService[DIPSA * 2], (char *)&twochars, 2);
+            if(grouptype == SI4735_GROUP_0A) {
+                //TODO: read the standard and do AF list decoding
+            }
+            break;
+        case SI4735_GROUP_1A:
+        case SI4735_GROUP_1B:
+            //TODO: read the standard and do PIN and slow labeling codes
+            break;
+        case SI4735_GROUP_2A:
+        case SI4735_GROUP_2B:
+            byte RTA, RTAW;
+
+            if((block[1] & SI4735_RDS_TEXTAB) != _rdstextab) {
+                _rdstextab = !_rdstextab;
+                memset(_status.radioText, ' ', 64);
+            }
+            RTA = lowByte(block[1] & SI4735_RDS_TEXT_ADDRESS);
+            RTAW = (grouptype == SI4735_GROUP_2A) ? 4 : 2;
+            fourchars[0] = switchEndian(
+                block[(grouptype == SI4735_GROUP_2A) ? 2 : 3]);
+            if(grouptype == SI4735_GROUP_2A) 
+                fourchars[1] = switchEndian(block[3]);
+            strncpy(&_status.radioText[RTA * RTAW], (char *)fourchars, RTAW);
+            break;
+        case SI4735_GROUP_3A:
+            //TODO: read the standard and do AID listing
+            break;
+        case SI4735_GROUP_3B:
+        case SI4735_GROUP_4B:
+        case SI4735_GROUP_6A:
+        case SI4735_GROUP_6B:
+        case SI4735_GROUP_7B:
+        case SI4735_GROUP_8B:
+        case SI4735_GROUP_9B:
+        case SI4735_GROUP_10B:
+        case SI4735_GROUP_11A:
+        case SI4735_GROUP_11B:
+        case SI4735_GROUP_12A:
+        case SI4735_GROUP_12B:
+        case SI4735_GROUP_13B:
+            //Application data payload (ODA), ignore for now
+            break;
+        case SI4735_GROUP_4A:
+            unsigned long MJD, CT, ys;
+            word yp;
+            byte k, mp;
+
+            CT = ((unsigned long)block[2] << 16) | block[3];
+            //The standard mandates that CT must be all zeros if no time
+            //information is being provided by the current station.
+            if(!CT) break;
+
+            _havect = true;            
+            MJD = (unsigned long)(block[1] & SI4735_RDS_MJD_MASK) <<
+                  SI4735_RDS_MJD_SHL;
+            MJD |= (CT & SI4735_RDS_TIME_MJD_MASK) >> SI4735_RDS_TIME_MJD_SHR;
+
+            //We report UTC for now, better not fiddle with timezones
+            _time.tm_hour = (CT & SI4735_RDS_TIME_HOUR_MASK) >>
+                                          SI4735_RDS_TIME_HOUR_SHR;
+            _time.tm_min = (CT & SI4735_RDS_TIME_MINUTE_MASK) >>
+                                         SI4735_RDS_TIME_MINUTE_SHR;
+            //Use integer arithmetic at all costs, Arduino lacks an FPU
+            yp = (MJD * 10 - 150782) * 10 / 36525;
+            ys = yp * 36525 / 100;
+            mp = (MJD * 10 - 149561 - ys * 10) * 1000 / 306001;
+            _time.tm_mday = MJD - 14956 - ys - mp * 306001 / 10000;
+            k = (mp == 14 || mp == 15) ? 1 : 0;
+            _time.tm_year = 1900 + yp + k;
+            _time.tm_mon = mp - 1 - k * 12;
+            _time.tm_wday = (MJD + 2) % 7 + 1;
+            break;
+        case SI4735_GROUP_5A:
+        case SI4735_GROUP_5B:
+            //TODO: read the standard and do TDC listing
+            break;
+        case SI4735_GROUP_7A:
+            //TODO: read the standard and do Radio Paging
+            break;
+        case SI4735_GROUP_8A:
+            //TODO: read the standard and do TMC listing
+            break;
+        case SI4735_GROUP_9A:
+            //TODO: read the standard and do EWS listing
+            break;
+        case SI4735_GROUP_10A:
+            if((block[1] & SI4735_RDS_PTYNAB) != _rdsptynab) {
+                _rdsptynab = !_rdsptynab;
+                memset(_status.programTypeName, ' ', 8);
+            }
+            fourchars[0] = switchEndian(block[2]);
+            fourchars[1] = switchEndian(block[3]);
+            strncpy(&_status.programTypeName[(block[1] & 
+                                              SI4735_RDS_PTYN_ADDRESS) * 4], 
+                    (char *)&fourchars, 4);            
+            break;
+        case SI4735_GROUP_13A:
+            //TODO: read the standard and do Enhanced Radio Paging
+            break;
+        case SI4735_GROUP_14A:
+        case SI4735_GROUP_14B:
+            //TODO: read the standard and do EON listing
+            break;
+        case SI4735_GROUP_15A:
+            //Withdrawn and currently unallocated, ignore
+            break;
+    }
+}
+
+void Si4735RDSDecoder::getRDSData(Si4735_RDS_Data* rdsdata){
+    makePrintable(_status.programService);
+    makePrintable(_status.programTypeName);
+    makePrintable(_status.radioText);
+
+    *rdsdata = _status;
+}
+
+boolean Si4735RDSDecoder::getRDSTime(Si4735_RDS_Time* rdstime){
+    if(_havect && rdstime) *rdstime = _time;
+
+    return _havect;
+}
+
+void Si4735RDSDecoder::resetRDS(void){
+    memset(_status.programService, ' ', 8);
+    _status.programService[8] = '\0';
+    memset(_status.programTypeName, ' ', 8);
+    _status.programTypeName[8] = '\0';
+    memset(_status.radioText, ' ', 64);
+    _status.radioText[64] = '\0';    
+    _status.DICC = 0;
+    _rdstextab = false;
+    _rdsptynab = false;
+    _havect = false;
+}
+
+void Si4735RDSDecoder::makePrintable(char* str){
+    for(byte i = 0; i < strlen(str); i++) {
+        if(str[i] == 0x0D) {
+            str[i] = '\0';
+            break;
+        }
+        if(str[i] < 32 || str[i] > 126) str[i] = '?';
+    }
+}
+
 void Si4735Translate::getTextForPTY(byte PTY, byte locale, char* text,
                                     byte textsize){
     const char* _PTY2Text_EU[32] = {"None/Undefined", "News",
@@ -94,13 +264,7 @@ void Si4735Translate::decodeCallSign(word programIdentifier, char* callSign){
 
 Si4735::Si4735(byte pinPower, byte pinReset, byte pinGPO2, byte pinSDIO,
                byte pinGPO1, byte pinSCLK, byte pinSEN){
-    _status.mode = SI4735_MODE_FM;
-    _rdstime.tm_year = 1970;
-    _rdstime.tm_mday = 1;
-    _rdstime.tm_mon = 1;
-    _rdstime.tm_hour = 0;
-    _rdstime.tm_min = 0;
-    resetRDS();
+    _mode = SI4735_MODE_FM;
     _pinPower = pinPower;
     _pinReset = pinReset;
     _pinGPO2 = pinGPO2;
@@ -111,7 +275,7 @@ Si4735::Si4735(byte pinPower, byte pinReset, byte pinGPO2, byte pinSDIO,
 }
 
 void Si4735::begin(byte mode){
-    _status.mode = mode;
+    _mode = mode;
 
     //Start by resetting the Si4735 and configuring the communication protocol
     //to SPI
@@ -158,7 +322,7 @@ void Si4735::begin(byte mode){
     //Datasheet says Si4735 is big endian (MSB first)
     SPI.setBitOrder(MSBFIRST);
 
-    setMode(_status.mode, false);
+    setMode(_mode, false);
 }
 
 void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3, 
@@ -228,25 +392,22 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
     } while(!(status & SI4735_STATUS_CTS));
 }
 
-void Si4735::setFrequency(word frequency){    
-    _status.frequency = frequency;
-    switch(_status.mode){
+void Si4735::setFrequency(word frequency){
+    switch(_mode){
         case SI4735_MODE_FM:
-            sendCommand(SI4735_CMD_FM_TUNE_FREQ, 0x00, 
-                        highByte(_status.frequency), 
-                        lowByte(_status.frequency));
+            sendCommand(SI4735_CMD_FM_TUNE_FREQ, 0x00, highByte(frequency),
+                        lowByte(frequency));
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
-            sendCommand(SI4735_CMD_AM_TUNE_FREQ, 0x00,
-                        highByte(_status.frequency), 
-                        lowByte(_status.frequency), 0x00, 
-                        ((_status.mode == SI4735_MODE_SW) ? 0x01 : 0x00));
+            sendCommand(SI4735_CMD_AM_TUNE_FREQ, 0x00, highByte(frequency), 
+                        lowByte(frequency), 0x00,
+                        ((_mode == SI4735_MODE_SW) ? 0x01 : 0x00));
             break;
     }
     waitForInterrupt(SI4735_STATUS_STCINT);
-    if(_status.mode == SI4735_MODE_FM) enableRDS();
+    if(_mode == SI4735_MODE_FM) enableRDS();
 }
 
 void Si4735::getRevision(char* FW, char* CMP, char* REV){
@@ -267,7 +428,9 @@ void Si4735::getRevision(char* FW, char* CMP, char* REV){
 }
 
 word Si4735::getFrequency(boolean* valid){
-    switch(_status.mode){
+    word frequency;
+    
+    switch(_mode){
         case SI4735_MODE_FM:            
             sendCommand(SI4735_CMD_FM_TUNE_STATUS, SI4735_FLG_INTACK);
             break;
@@ -277,21 +440,15 @@ word Si4735::getFrequency(boolean* valid){
             sendCommand(SI4735_CMD_AM_TUNE_STATUS, SI4735_FLG_INTACK);
             break;
     }    
-    getResponse(_response);    
-
-    //Since we get these for free, update our data structures too
-    _status.frequency = word(_response[2], _response[3]);
-    _status.signalQuality.RSSI = _response[4];
-    _status.signalQuality.SNR = _response[5];
-    if(_status.mode == SI4735_MODE_FM)
-        _status.signalQuality.MULT = _response[6];
+    getResponse(_response);
+    frequency = word(_response[2], _response[3]);
 
     if(valid) *valid = (_response[1] & SI4735_STATUS_VALID);
-    return _status.frequency;
+    return frequency;
 }
 
 void Si4735::seekUp(boolean wrap){
-    switch(_status.mode){
+    switch(_mode){
         case SI4735_MODE_FM:
             sendCommand(SI4735_CMD_FM_SEEK_START, 
                         (SI4735_FLG_SEEKUP | 
@@ -303,15 +460,15 @@ void Si4735::seekUp(boolean wrap){
             sendCommand(SI4735_CMD_AM_SEEK_START, 
                         (SI4735_FLG_SEEKUP | (wrap ? SI4735_FLG_WRAP : 0x00)),
                         0x00, 0x00, 0x00, 
-                        ((_status.mode == SI4735_MODE_SW) ? 0x01 : 0x00));
+                        ((_mode == SI4735_MODE_SW) ? 0x01 : 0x00));
             break;
     }
     waitForInterrupt(SI4735_STATUS_STCINT);
-    if(_status.mode == SI4735_MODE_FM) enableRDS();
+    if(_mode == SI4735_MODE_FM) enableRDS();
 }
 
 void Si4735::seekDown(boolean wrap){
-    switch(_status.mode){
+    switch(_mode){
         case SI4735_MODE_FM:
             sendCommand(SI4735_CMD_FM_SEEK_START, 
                         (wrap ? SI4735_FLG_WRAP : 0x00));
@@ -321,15 +478,15 @@ void Si4735::seekDown(boolean wrap){
         case SI4735_MODE_LW:
             sendCommand(SI4735_CMD_AM_SEEK_START, 
                         (wrap ? SI4735_FLG_WRAP : 0x00), 0x00, 0x00, 0x00, 
-                        ((_status.mode == SI4735_MODE_SW) ? 0x01 : 0x00));
+                        ((_mode == SI4735_MODE_SW) ? 0x01 : 0x00));
             break;
     }
     waitForInterrupt(SI4735_STATUS_STCINT);
-    if(_status.mode == SI4735_MODE_FM) enableRDS();
+    if(_mode == SI4735_MODE_FM) enableRDS();
 }
 
 void Si4735::setSeekThresholds(byte SNR, byte RSSI){
-    switch(_status.mode){
+    switch(_mode){
         case SI4735_MODE_FM:
             setProperty(SI4735_PROP_FM_SEEK_TUNE_SNR_THRESHOLD, 
                         word(0x00, constrain(SNR, 0, 127)));
@@ -347,173 +504,31 @@ void Si4735::setSeekThresholds(byte SNR, byte RSSI){
     }
 }
 
-void Si4735::updateRDS(void){
-    byte grouptype;
-    word groups[4], fourchars[2];
-
+boolean Si4735::readRDSBlock(word* block){
     //See if there's anything for us to do
-    if(!(_status.mode == SI4735_MODE_FM &&
-         (getStatus() & SI4735_STATUS_RDSINT))) return;
+    if(!(_mode == SI4735_MODE_FM && (getStatus() & SI4735_STATUS_RDSINT)))
+        return false;
     
     _haverds = true;
     //Grab the next available RDS group from the chip
     sendCommand(SI4735_CMD_FM_RDS_STATUS, SI4735_FLG_INTACK);
     getResponse(_response);
-    groups[0] = word(_response[4], _response[5]);
-    groups[1] = word(_response[6], _response[7]);
-    groups[2] = word(_response[8], _response[9]);
-    groups[3] = word(_response[10], _response[11]);
- 
-    _status.programIdentifier = groups[0];
-    grouptype = lowByte((groups[1] & SI4735_RDS_TYPE_MASK) >>
-                        SI4735_RDS_TYPE_SHR);
-    _status.TP = groups[1] & SI4735_RDS_TP;
-    _status.PTY = lowByte((groups[1] & SI4735_RDS_PTY_MASK) >>
-                          SI4735_RDS_PTY_SHR);
+    //memcpy() would be faster but it won't help since we're of a different
+    //endianness than the device we're talking to.
+    block[0] = word(_response[4], _response[5]);
+    block[1] = word(_response[6], _response[7]);
+    block[2] = word(_response[8], _response[9]);
+    block[3] = word(_response[10], _response[11]);
     
-    switch(grouptype){
-        case SI4735_GROUP_0A:
-        case SI4735_GROUP_0B:
-        case SI4735_GROUP_15B:
-            byte DIPSA;
-            word twochars;
-            
-            _status.TA = groups[1] & SI4735_RDS_TA;
-            _status.MS = groups[1] & SI4735_RDS_MS;
-            DIPSA = lowByte(groups[1] & SI4735_RDS_DIPS_ADDRESS);
-            bitWrite(_status.DICC, 3 - DIPSA, groups[1] & SI4735_RDS_DI);
-            twochars = switchEndian(groups[3]);
-            strncpy(&_status.programService[DIPSA * 2], (char *)&twochars, 2);
-            if(grouptype == SI4735_GROUP_0A) {
-                //TODO: read the standard and do AF list decoding
-            }
-            break;
-        case SI4735_GROUP_1A:
-        case SI4735_GROUP_1B:
-            //TODO: read the standard and do PIN and slow labeling codes
-            break;
-        case SI4735_GROUP_2A:
-        case SI4735_GROUP_2B:
-            byte RTA, RTAW;
-            
-            if((groups[1] & SI4735_RDS_TEXTAB) != _rdstextab) {
-                _rdstextab = !_rdstextab;
-                memset(_status.radioText, ' ', 64);
-            }
-            RTA = lowByte(groups[1] & SI4735_RDS_TEXT_ADDRESS);
-            RTAW = (grouptype == SI4735_GROUP_2A) ? 4 : 2;
-            fourchars[0] = switchEndian(
-                groups[(grouptype == SI4735_GROUP_2A) ? 2 : 3]);
-            if(grouptype == SI4735_GROUP_2A) 
-                fourchars[1] = switchEndian(groups[3]);
-            strncpy(&_status.radioText[RTA * RTAW], (char *)fourchars, RTAW);
-            break;
-        case SI4735_GROUP_3A:
-            //TODO: read the standard and do AID listing
-            break;
-        case SI4735_GROUP_3B:
-        case SI4735_GROUP_4B:
-        case SI4735_GROUP_6A:
-        case SI4735_GROUP_6B:
-        case SI4735_GROUP_7B:
-        case SI4735_GROUP_8B:
-        case SI4735_GROUP_9B:
-        case SI4735_GROUP_10B:
-        case SI4735_GROUP_11A:
-        case SI4735_GROUP_11B:
-        case SI4735_GROUP_12A:
-        case SI4735_GROUP_12B:
-        case SI4735_GROUP_13B:
-            //Application data payload (ODA), ignore for now
-            break;
-        case SI4735_GROUP_4A:
-            unsigned long MJD, CT, ys;
-            word yp;
-            byte k, mp;
-            
-            CT = ((unsigned long)groups[2] << 16) | groups[3];
-            //The standard mandates that CT must be all zeros if no time
-            //information is being provided by the current station.
-            if(!CT) break;
-
-            _havect = true;            
-            MJD = (unsigned long)(groups[1] & SI4735_RDS_MJD_MASK) <<
-                  SI4735_RDS_MJD_SHL;
-            MJD |= (CT & SI4735_RDS_TIME_MJD_MASK) >> SI4735_RDS_TIME_MJD_SHR;
-
-            //We report UTC for now, better not fiddle with locales
-            _rdstime.tm_hour = (CT & SI4735_RDS_TIME_HOUR_MASK) >>
-                               SI4735_RDS_TIME_HOUR_SHR;
-            _rdstime.tm_min = (CT & SI4735_RDS_TIME_MINUTE_MASK) >>
-                              SI4735_RDS_TIME_MINUTE_SHR;
-            //Use integer arithmetic at all costs, Arduino lacks an FPU
-            yp = (MJD * 10 - 150782) * 10 / 36525;
-            ys = yp * 36525 / 100;
-            mp = (MJD * 10 - 149561 - ys * 10) * 1000 / 306001;
-            _rdstime.tm_mday = MJD - 14956 - ys - mp * 306001 / 10000;
-            k = (mp == 14 || mp == 15) ? 1 : 0;
-            _rdstime.tm_year = 1900 + yp + k;
-            _rdstime.tm_mon = mp - 1 - k * 12;
-            _rdstime.tm_wday = (MJD + 2) % 7 + 1;
-            break;
-        case SI4735_GROUP_5A:
-        case SI4735_GROUP_5B:
-            //TODO: read the standard and do TDC listing
-            break;
-        case SI4735_GROUP_7A:
-            //TODO: read the standard and do Radio Paging
-            break;
-        case SI4735_GROUP_8A:
-            //TODO: read the standard and do TMC listing
-            break;
-        case SI4735_GROUP_9A:
-            //TODO: read the standard and do EWS listing
-            break;
-        case SI4735_GROUP_10A:
-            if((groups[1] & SI4735_RDS_PTYNAB) != _rdsptynab) {
-                _rdsptynab = !_rdsptynab;
-                memset(_status.programTypeName, ' ', 8);
-            }
-            fourchars[0] = switchEndian(groups[2]);
-            fourchars[1] = switchEndian(groups[3]);
-            strncpy(&_status.programTypeName[(groups[1] & 
-                                              SI4735_RDS_PTYN_ADDRESS) * 4], 
-                    (char *)&fourchars, 4);            
-            break;
-        case SI4735_GROUP_13A:
-            //TODO: read the standard and do Enhanced Radio Paging
-            break;
-        case SI4735_GROUP_14A:
-        case SI4735_GROUP_14B:
-            //TODO: read the standard and do EON listing
-            break;
-        case SI4735_GROUP_15A:
-            //Withdrawn and currently unallocated, ignore
-            break;
-    }
-}
-
-void Si4735::getStationInfo(Si4735_Station* tunedStation) {
-    makePrintable(_status.programService);
-    makePrintable(_status.programTypeName);
-    makePrintable(_status.radioText);
-    *tunedStation = _status;
+    return true;
 }
 
 boolean Si4735::isRDSCapable(void){
     return _haverds;
 }
 
-boolean Si4735::getRDSTime(Si4735_RDS_Time* timedate){
-    if(!(_haverds && _havect)) return false;
-    if(timedate) *timedate = _rdstime;
-    
-    return _havect;
-}
-
 void Si4735::getRSQ(Si4735_RX_Metrics* RSQ){
-    //This function gets the Received Signal Quality information
-    switch(_status.mode){
+    switch(_mode){
         case SI4735_MODE_FM:            
             sendCommand(SI4735_CMD_FM_RSQ_STATUS, SI4735_FLG_INTACK);            
             break;
@@ -526,18 +541,15 @@ void Si4735::getRSQ(Si4735_RX_Metrics* RSQ){
     //Now read the response    
     getResponse(_response);    
 
-    //Pull the response data into their respecive fields and update our copy
-    _status.signalQuality.RSSI = _response[4];
-    _status.signalQuality.SNR = _response[5];
-    if(_status.mode == SI4735_MODE_FM){
-        _status.signalQuality.PILOT = _response[3] & SI4735_STATUS_PILOT;
-        _status.signalQuality.STBLEND = (_response[3] & 
-                                         (~SI4735_STATUS_PILOT));
-        _status.signalQuality.MULT = _response[6];
-        _status.signalQuality.FREQOFF = _response[7];
+    //Pull the response data into their respecive fields
+    RSQ->RSSI = _response[4];
+    RSQ->SNR = _response[5];
+    if(_mode == SI4735_MODE_FM){
+        RSQ->PILOT = _response[3] & SI4735_STATUS_PILOT;
+        RSQ->STBLEND = (_response[3] & (~SI4735_STATUS_PILOT));
+        RSQ->MULT = _response[6];
+        RSQ->FREQOFF = _response[7];
     }
-
-    *RSQ = _status.signalQuality;
 }
 
 boolean Si4735::volumeUp(void){
@@ -637,7 +649,7 @@ void Si4735::end(boolean hardoff){
 }
 
 void Si4735::setDeemphasis(byte deemph){
-    switch(_status.mode){
+    switch(_mode){
         case SI4735_MODE_FM:            
             setProperty(SI4735_PROP_FM_DEEMPHASIS, word(0x00, deemph));        
             break;
@@ -651,9 +663,9 @@ void Si4735::setDeemphasis(byte deemph){
 
 void Si4735::setMode(byte mode, boolean powerdown){
     if(powerdown) end(false);
-    _status.mode = mode;
+    _mode = mode;
     
-    switch(_status.mode){
+    switch(_mode){
         case SI4735_MODE_FM:
             sendCommand(SI4735_CMD_POWER_UP, SI4735_FLG_GPO2IEN | 
                         SI4735_FLG_XOSCEN | SI4735_FUNC_FM,
@@ -676,7 +688,7 @@ void Si4735::setMode(byte mode, boolean powerdown){
     unMute();
 
     //Set the seek band for the desired mode (AM and FM can use defaults)
-    switch(_status.mode){
+    switch(_mode){
         case SI4735_MODE_SW:
             //Set the lower band limit for Short Wave Radio to 2.3 MHz
             setProperty(SI4735_PROP_AM_SEEK_BAND_BOTTOM, 0x08FC);            
@@ -695,13 +707,12 @@ void Si4735::setMode(byte mode, boolean powerdown){
     //TODO: write interrupt handlers for STCINT and RDSINT
     setProperty(
         SI4735_PROP_GPO_IEN, 
-        word(0x00, 
-             ((_status.mode == SI4735_MODE_FM) ? SI4735_FLG_RDSIEN : 0x00) | 
+        word(0x00, ((_mode == SI4735_MODE_FM) ? SI4735_FLG_RDSIEN : 0x00) | 
              SI4735_FLG_STCIEN));
 }
 
 byte Si4735::getMode(void){
-    return _status.mode;
+    return _mode;
 }
 
 void Si4735::setProperty(word property, word value){
@@ -717,36 +728,9 @@ word Si4735::getProperty(word property){
     return word(_response[2], _response[3]);
 }
 
-/*
-* Private Functions
-*/
-void Si4735::resetRDS(void){
-    memset(_status.programService, ' ', 8);
-    _status.programService[8] = '\0';
-    memset(_status.programTypeName, ' ', 8);
-    _status.programTypeName[8] = '\0';
-    memset(_status.radioText, ' ', 64);
-    _status.radioText[64] = '\0';    
-    _status.DICC = 0;
-    _rdstextab = false;
-    _rdsptynab = false;
-    _haverds = false;
-    _havect = false;
-}
-
-void Si4735::makePrintable(char* str){
-    for(byte i = 0; i < strlen(str); i++) {
-        if(str[i] == 0x0D) {
-            str[i] = '\0';
-            break;
-        }
-        if(str[i] < 32 || str[i] > 126) str[i] = '?';
-    }
-}
-
 void Si4735::enableRDS(void){
     //Enable and configure RDS reception
-    if(_status.mode == SI4735_MODE_FM) {
+    if(_mode == SI4735_MODE_FM) {
         setProperty(SI4735_PROP_FM_RDS_INT_SOURCE, word(0x00, 
                                                         SI4735_FLG_RDSRECV));
         setProperty(SI4735_PROP_FM_RDS_INT_FIFO_COUNT, word(0x00, 0x01));
@@ -754,7 +738,6 @@ void Si4735::enableRDS(void){
                     SI4735_FLG_BLETHB_35 | SI4735_FLG_BLETHC_35 | 
                     SI4735_FLG_BLETHD_35, SI4735_FLG_RDSEN));
     };
-    resetRDS();
 }
 
 void Si4735::waitForInterrupt(byte which){
@@ -763,8 +746,4 @@ void Si4735::waitForInterrupt(byte which){
         delay(125);
         sendCommand(SI4735_CMD_GET_INT_STATUS);
     }
-}
-
-word Si4735::switchEndian(word value){
-    return (value >> 8) | (value << 8);
 }

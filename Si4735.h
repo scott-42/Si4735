@@ -236,6 +236,17 @@
 #define SI4735_RDS_DI_COMPRESSED 0x04
 #define SI4735_RDS_DI_DYNAMIC_PTY 0x08
 
+//This holds the current station reception metrics as given by the chip. See
+//the Si4735 datasheet for a detailed explanation of each member.
+typedef struct {
+    byte STBLEND;
+    boolean PILOT;
+    byte RSSI;
+    byte SNR;
+    byte MULT;
+    signed char FREQOFF;
+} Si4735_RX_Metrics;
+
 //This holds time of day as received via RDS. Mimicking struct tm from
 //<time.h> for familiarity.
 //NOTE: RDS does not provide seconds, only guarantees that the minute update
@@ -252,19 +263,6 @@ typedef struct {
     byte tm_wday;
 }  Si4735_RDS_Time;
 
-//This holds the current station reception metrics as given by the chip. See
-//the Si4735 datasheet for a detailed explanation of each member.
-typedef struct {
-    byte STBLEND;
-    boolean PILOT;
-    byte RSSI;
-    byte SNR;
-    byte MULT;
-    signed char FREQOFF;
-} Si4735_RX_Metrics;
-
-//This holds the current tuned-in station information, as gathered from the 
-//environment. For non-RDS stations, all RDS-related members will be empty.
 typedef struct {
     //PI is already taken :-(
     word programIdentifier;
@@ -273,10 +271,73 @@ typedef struct {
     char programService[9];
     char programTypeName[9];
     char radioText[65];
-    Si4735_RX_Metrics signalQuality;
-    word frequency;
-    byte mode;
-} Si4735_Station;
+} Si4735_RDS_Data;
+
+class Si4735RDSDecoder
+{
+    public:
+        /*
+        * Description:
+        *   Default constructor.
+        */
+        Si4735RDSDecoder() { resetRDS(); }
+        
+        /*
+        * Description:
+        *   Decodes one RDS block and updates internal data structures.
+        */
+        void decodeRDSBlock(word block[]);
+
+        /*
+        * Description:
+        *   Returns currently decoded RDS data, filling a struct 
+        *   Si4735_RDS_Data.
+        */
+        void getRDSData(Si4735_RDS_Data* rdsdata);
+
+        /*
+        * Description:
+        *   Returns currently decoded RDS CT information filling a struct
+        *   Si4735_RDS_Time, if any is available, and returns true; otherwise
+        *   returns false and does not touch rdstime.
+        * Parameters:
+        *   rdstime - pointer to a struct Si4735_RDS_Time to be filled with
+        *             CT information, ignore if only interested in CT
+        *             availability and not actual value.
+        */
+        boolean getRDSTime(Si4735_RDS_Time* rdstime = NULL);
+        
+        /*
+        * Description:
+        *   Resets internal data structures, use when switching to a new
+        *   station.
+        */
+        void resetRDS(void);
+        
+    private:
+        Si4735_RDS_Data _status;
+        Si4735_RDS_Time _time;
+        boolean _rdstextab, _rdsptynab, _havect;
+        /*
+        * Description:
+        *   Filters the string str in place to only contain printable 
+        *   characters and also replaces 0x0D (CR) with 0x00 effectively
+        *   ending the string at that point as per RDBS §3.1.5.3.
+        *   Any unprintable character is converted to a question mark ("?"),
+        *   as is customary. This helps with filtering out noisy strings.
+        */
+        void makePrintable(char* str);
+
+        /*
+        * Description:
+        *   Switches endianness of the given value around. Si4735 is a 
+        *   big-endian machine while Arduino is little-endian --  a storm of
+        *   problems are headed our way if we ignore that.
+        * Parameters:
+        *   value - the word to be switched
+        */
+        inline word switchEndian(word value) { return (value >> 8) | (value << 8); }
+};
 
 class Si4735Translate
 {
@@ -428,20 +489,13 @@ class Si4735
 
         /*
         * Description:
-        *   Collects the RDS information and updates private data structures,
-        *   if new RDS information is available.
+        *   If in FM mode and the chip has received any RDS block, fetch it
+        *   off the chip and fill word block[4] with it, returning true;
+        *   otherwise return false without side-effects.
         *   This function needs to be actively called (e.g. from loop()) in
         *   order to see sensible information.
         */
-        void updateRDS(void);
-
-        /*
-        * Description:
-        *   Pulls all context information about the currently tuned-in station
-        *   and fills a Si4735_Station struct. This will include RDS
-        *   information for RDS-capable stations (see isRDSCapable()).
-        */
-        void getStationInfo(Si4735_Station* tunedStation);
+        boolean readRDSBlock(word* block);
 
         /*
         * Description:
@@ -449,18 +503,6 @@ class Si4735
         *   tuned into the current station.
         */
         boolean isRDSCapable(void);
-
-        /*
-        * Description:
-        *   Retreives RDS time and date information (group 4A) using a 
-        *   Si4735_RDS_Time struct. Returns false (and does not touch
-        *   timedate) if RDS CT is not available.
-        * Parameters:
-        *   timedate - pointer to a Si4735_RDS_Time struct, to be filled with
-        *              the current time and date, as given by RDS. Ignore if
-        *              only interested in whether CT is available or not.
-        */
-        boolean getRDSTime(Si4735_RDS_Time* timedate = NULL);
 
         /*
         * Description:
@@ -582,30 +624,10 @@ class Si4735
         word getProperty(word property);
 
     private:
-        Si4735_Station _status;
-        Si4735_RDS_Time _rdstime;
         byte _pinPower, _pinReset, _pinGPO2, _pinSDIO, _pinGPO1, _pinSCLK,
              _pinSEN;
-        byte _response[16];
-        boolean _rdstextab, _rdsptynab, _haverds, _havect;
-
-        /*
-        * Description:
-        *   Clears stored RDS strings so that data from other stations are not
-        *   overlayed on the current station. Note that the chip will do that
-        *   itself to the RDS FIFO whenever we Tune/Seek to another frequency.
-        */
-        void resetRDS(void);
-                
-        /*
-        * Description:
-        *   Filters the string str in place to only contain printable 
-        *   characters and also replaces 0x0D (CR) with 0x00 effectively
-        *   ending the string at that point as per RDBS §3.1.5.3.
-        *   Any unprintable character is converted to a question mark ("?"),
-        *   as is customary. This helps with filtering out noisy strings.
-        */
-        void makePrintable(char* str);
+        byte _mode, _response[16];
+        boolean _haverds;
         
         /*
         * Description:
@@ -619,17 +641,7 @@ class Si4735
         * Parameters:
         *   which - interrupt flag to wait for, see SI4735_STATUS_*
         */
-        void waitForInterrupt(byte which);
-        
-        /*
-        * Description:
-        *   Switches endianness of the given value around. Si4735 is a 
-        *   big-endian machine while Arduino is little-endian --  a storm of
-        *   problems are headed our way if we ignore that.
-        * Parameters:
-        *   value - the word to be switched
-        */
-        inline word switchEndian(word value);
+        void waitForInterrupt(byte which);        
 };
 
 #endif
