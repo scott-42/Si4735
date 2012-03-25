@@ -131,9 +131,7 @@ void setup()
         LCD.goTo(16);
         Serial.print("...Loading-Up..."); 
                 
-        //Set the LCD to it's max supported Baud
-	//Reconfiguring the LCD like this seems to cause initial boot lockups
-	//If you have boot issues, comment the next 4 statements out
+        //Set the LCD to it's max supported Baud	
         LCD.setBaud(38400);
         //Reconfigure the Serial interface for the new setting
         Serial.end(); 
