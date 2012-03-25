@@ -165,11 +165,14 @@ void setup()
         bool dummy;
         int init_freq=0;
         int max_attempts=10, attempts=1;        
-        while(init_freq!=frequency || attempts>=max_attempts){          
+        while(init_freq!=frequency){
+          if(attempts<=max_attempts)
+            break;         
           radio.tuneFrequency(frequency);
           init_freq=radio.getFrequency(dummy);
-          delay(100);                 
-        }         
+          attempts++;
+          delay(100);
+        }        
         
 	volume=radio.setVolume(volume);
 
