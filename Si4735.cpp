@@ -287,7 +287,7 @@ Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,
 
 void Si4735::begin(byte mode){
     //Start by resetting the Si4735 and configuring the communication protocol
-    if(_pinPower != 0xFF) pinMode(_pinPower, OUTPUT);
+    if(_pinPower != SI4735_PIN_POWER_HW) pinMode(_pinPower, OUTPUT);
     pinMode(_pinReset, OUTPUT);
     //GPO1 is connected to MISO on the shield, the latter of which defaults to
     //INPUT mode on boot which makes it High-Z, which, in turn, allows the
@@ -301,7 +301,7 @@ void Si4735::begin(byte mode){
     pinMode((_i2caddr ? SCL : SCK), OUTPUT);
 
     //Sequence the power to the Si4735
-    if(_pinPower != 0xFF) digitalWrite(_pinPower, LOW);
+    if(_pinPower != SI4735_PIN_POWER_HW) digitalWrite(_pinPower, LOW);
     digitalWrite(_pinReset, LOW);
 
     if(!_i2caddr) {
@@ -310,7 +310,7 @@ void Si4735::begin(byte mode){
     };
     //Use the longest of delays given in the datasheet
     delayMicroseconds(100);
-    if(_pinPower != 0xFF) {
+    if(_pinPower != SI4735_PIN_POWER_HW) {
         digitalWrite(_pinPower, HIGH);
         //Datasheet calls for 250us between VIO and RESET
         delayMicroseconds(250);
@@ -328,7 +328,10 @@ void Si4735::begin(byte mode){
         //Now configure the I/O pins properly
         pinMode(MISO, INPUT);
     };
-    pinMode(_pinGPO2, INPUT);
+    //If we get to here and in SPI mode, we know GPO2 is not unused because
+    //we just used it to select SPI mode. If we are in I2C mode, then we look
+    //to see if the user wants interrupts and only then enable it.
+    if(_pinGPO2 != SI4735_PIN_GPO2_HW) pinMode(_pinGPO2, INPUT);
     
     if(!_i2caddr) {
 #if !defined(SI4735_NOSPI)
@@ -717,7 +720,7 @@ void Si4735::end(boolean hardoff){
         if(!_i2caddr) SPI.end();
 #endif
         digitalWrite(_pinReset, LOW);
-        if(_pinPower != 0xFF) digitalWrite(_pinPower, LOW);
+        if(_pinPower != SI4735_PIN_POWER_HW) digitalWrite(_pinPower, LOW);
     };
 }
 
