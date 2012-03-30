@@ -93,7 +93,7 @@ void loop()
   }
   
   //Wait until a character comes in on the Serial port.
-  if(Serial.available() > 0){
+  if(Serial.available()){
     //Decide what to do based on the character received.
     command = Serial.read();
     switch(command){
@@ -106,12 +106,12 @@ void loop()
         else Serial.println("ERROR: already at maximum volume");
         break;
       case 's': 
-        radio.seekDown();
         Serial.println("Seeking down with band wrap-around");
+        radio.seekDown();
         break;
       case 'S': 
-        radio.seekUp();
         Serial.println("Seeking up with band wrap-around");
+        radio.seekUp();
         break;
       case 'm': 
         radio.mute();
@@ -187,7 +187,8 @@ void loop()
         }
         Serial.println("}");
         break;
-      case 't': 
+      case 't':
+        radio.sendCommand(SI4735_CMD_GET_INT_STATUS);
         status = radio.getStatus();
         Serial.println("Status byte {");
         if(status & SI4735_STATUS_CTS) Serial.println("* Clear To Send");

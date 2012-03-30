@@ -6,9 +6,9 @@
 # Datatypes (KEYWORD1)
 #######################################
 Si4735	KEYWORD1
-Si4735RDSDecoder KEYWORD1
-Si4735Translate   KEYWORD1
-Si4735_RDS_Data KEYWORD1
+Si4735RDSDecoder	KEYWORD1
+Si4735Translate	KEYWORD1
+Si4735_RDS_Data	KEYWORD1
 Si4735_RDS_Time	KEYWORD1
 Si4735_RX_Metrics	KEYWORD1
 

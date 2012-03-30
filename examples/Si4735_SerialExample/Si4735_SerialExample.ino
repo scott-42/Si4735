@@ -138,6 +138,7 @@ void loop()
         } 
         break;
       case '?':
+        Serial.println("Available commands:");
         Serial.println("* r      - display response (long read)");
         Serial.println("* s      - display status (short read)");
         Serial.println("* x      - flush (empty) command string and start over");

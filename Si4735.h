@@ -332,11 +332,17 @@ class Si4735RDSDecoder
         *   station.
         */
         void resetRDS(void);
+#if defined(SI4735_DEBUG)
+        void dumpRDSStats(void);
+#endif
         
     private:
         Si4735_RDS_Data _status;
         Si4735_RDS_Time _time;
         boolean _rdstextab, _rdsptynab, _havect;
+#if defined(SI4735_DEBUG)
+        word _rdsstats[32];
+#endif
         /*
         * Description:
         *   Filters the string str in place to only contain printable 

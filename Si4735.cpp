@@ -12,6 +12,7 @@
 
 #include "Si4735.h"
 #include "Si4735-private.h"
+
 #if !defined(SI4735_NOSPI)
 # include <SPI.h>
 #endif
@@ -29,6 +30,9 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
     _status.TP = block[1] & SI4735_RDS_TP;
     _status.PTY = lowByte((block[1] & SI4735_RDS_PTY_MASK) >>
                           SI4735_RDS_PTY_SHR);
+#if defined(SI4735_DEBUG)
+    _rdsstats[grouptype]++;
+#endif
 
     switch(grouptype){
         case SI4735_GROUP_0A:
@@ -177,6 +181,9 @@ void Si4735RDSDecoder::resetRDS(void){
     _rdstextab = false;
     _rdsptynab = false;
     _havect = false;
+#if defined(SI4735_DEBUG)
+    memset(_rdsstats, 0x0000, 32);
+#endif
 }
 
 void Si4735RDSDecoder::makePrintable(char* str){
@@ -188,6 +195,19 @@ void Si4735RDSDecoder::makePrintable(char* str){
         if(str[i] < 32 || str[i] > 126) str[i] = '?';
     }
 }
+
+#if defined(SI4735_DEBUG)
+void Si4735RDSDecoder::dumpRDSStats(void){
+    Serial.println("RDS group statistics:");
+    for(byte i = 0; i < 32; i++) {
+        Serial.print("#");
+        Serial.print(i >> 1);
+        Serial.print((i & 0x01) ? 'B' : 'A');
+        Serial.print(": ");
+        Serial.println(_rdsstats[i]);
+    }
+}
+#endif
 
 void Si4735Translate::getTextForPTY(byte PTY, byte locale, char* text,
                                     byte textsize){
