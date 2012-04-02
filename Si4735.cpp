@@ -294,6 +294,7 @@ Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,
     _pinReset = pinReset;
     _pinGPO2 = pinGPO2;
     _pinSEN = pinSEN;
+    memset((void *)&_rsqm, 0x00, sizeof(_rsqm));
     switch(interface){
         case SI4735_INTERFACE_SPI:
             _i2caddr = 0x00;
@@ -611,14 +612,16 @@ void Si4735::getRSQ(Si4735_RX_Metrics* RSQ){
     getResponse(_response);    
 
     //Pull the response data into their respecive fields
-    RSQ->RSSI = _response[4];
-    RSQ->SNR = _response[5];
+    _rsqm.RSSI = _response[4];
+    _rsqm.SNR = _response[5];
     if(_mode == SI4735_MODE_FM){
-        RSQ->PILOT = _response[3] & SI4735_STATUS_PILOT;
-        RSQ->STBLEND = (_response[3] & (~SI4735_STATUS_PILOT));
-        RSQ->MULT = _response[6];
-        RSQ->FREQOFF = _response[7];
+        _rsqm.PILOT = _response[3] & SI4735_STATUS_PILOT;
+        _rsqm.STBLEND = (_response[3] & (~SI4735_STATUS_PILOT));
+        _rsqm.MULT = _response[6];
+        _rsqm.FREQOFF = _response[7];
     }
+    
+    *RSQ = _rsqm;
 }
 
 boolean Si4735::volumeUp(void){
