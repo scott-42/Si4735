@@ -182,7 +182,7 @@ void Si4735RDSDecoder::resetRDS(void){
     _rdsptynab = false;
     _havect = false;
 #if defined(SI4735_DEBUG)
-    memset(_rdsstats, 0x0000, 32);
+    memset((void *)&_rdsstats, 0x00, sizeof(_rdsstats));
 #endif
 }
 
