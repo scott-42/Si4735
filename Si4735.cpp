@@ -16,7 +16,7 @@
 #if !defined(SI4735_NOSPI)
 # include <SPI.h>
 #endif
-#if !defined(SI4835_NOI2C)
+#if !defined(SI4735_NOI2C)
 # include <Wire.h>
 #endif
 

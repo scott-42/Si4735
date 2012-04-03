@@ -21,10 +21,8 @@
 #define SI4735_CP_READ16_GPO1 0xE0
 
 //Define Si4735 I2C Addresses
-#define SI4735_I2C_READ 0x01
-#define SI4735_I2C_WRITE 0x00
-#define SI4735_I2C_ADDR_L 0x22
-#define SI4735_I2C_ADDR_H 0xC6
+#define SI4735_I2C_ADDR_L (0x22 >> 1)
+#define SI4735_I2C_ADDR_H (0xC6 >> 1)
 
 //Define RDS block B decoding masks
 #define SI4735_RDS_TYPE_MASK 0xF800
