@@ -68,6 +68,7 @@ Si4735RDSDecoder decoder;
 char command;
 byte mode, status;
 word frequency, rdsblock[4];
+boolean goodtune = false;
 Si4735_RX_Metrics RSQ;
 Si4735_RDS_Data station;
 Si4735_RDS_Time rdstime;
@@ -122,7 +123,7 @@ void loop()
         Serial.println("Audio unmuted");
         break;
       case 'f': 
-        frequency = radio.getFrequency();
+        frequency = radio.getFrequency(&goodtune);
         mode = radio.getMode();
         Serial.print("Currently tuned to ");
         switch(mode) {
@@ -145,6 +146,7 @@ void loop()
             Serial.println((mode == SI4735_MODE_AM) ? "AM" : "LW");
             break;
         }
+        if(goodtune) Serial.println("* Valid tune");
         break;
       case 'L':
       case 'A':
