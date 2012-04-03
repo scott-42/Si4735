@@ -332,7 +332,11 @@ class Si4735RDSDecoder
         *   station.
         */
         void resetRDS(void);
+        
 #if defined(SI4735_DEBUG)
+        /* Description:
+        *    Dumps RDS group type receipt statistics.
+        */
         void dumpRDSStats(void);
 #endif
         
@@ -417,6 +421,12 @@ class Si4735
                byte pinPower = SI4735_PIN_POWER,
                byte pinReset = SI4735_PIN_RESET,
                byte pinGPO2 = SI4735_PIN_GPO2, byte pinSEN = SI4735_PIN_SEN);
+        
+        /*
+        * Description:
+        *   This is the destructor, it shuts the Si4735 down
+        */
+        ~Si4735();
         
         /*
         * Description: 
