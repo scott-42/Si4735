@@ -310,7 +310,7 @@ Si4735::~Si4735() {
     end(true);
 }
 
-void Si4735::begin(byte mode){
+void Si4735::begin(byte mode, boolean xosc){
     //Start by resetting the Si4735 and configuring the communication protocol
     if(_pinPower != SI4735_PIN_POWER_HW) pinMode(_pinPower, OUTPUT);
     pinMode(_pinReset, OUTPUT);
@@ -376,7 +376,7 @@ void Si4735::begin(byte mode){
 #endif
     };
 
-    setMode(_mode, false);
+    setMode(_mode, false, xosc);
 }
 
 void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3, 
@@ -764,21 +764,21 @@ void Si4735::setDeemphasis(byte deemph){
     }
 }
 
-void Si4735::setMode(byte mode, boolean powerdown){
+void Si4735::setMode(byte mode, boolean powerdown, boolean xosc){
     if(powerdown) end(false);
     _mode = mode;
     
     switch(_mode){
         case SI4735_MODE_FM:
             sendCommand(SI4735_CMD_POWER_UP, SI4735_FLG_GPO2IEN | 
-                        SI4735_FLG_XOSCEN | SI4735_FUNC_FM,
+                        (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_FM,
                         SI4735_OUT_ANALOG);
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
             sendCommand(SI4735_CMD_POWER_UP, SI4735_FLG_GPO2IEN | 
-                        SI4735_FLG_XOSCEN | SI4735_FUNC_AM,
+                        (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_AM,
                         SI4735_OUT_ANALOG);
             break;
     }

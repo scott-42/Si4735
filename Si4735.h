@@ -440,8 +440,9 @@ class Si4735
         *     FM - 87.5 to 107.9 MHz
         * Parameters:
         *   mode - The desired radio mode, one of the SI4735_MODE_* constants.
+        *   xosc - A 32768Hz external oscillator is present.
         */
-        void begin(byte mode);
+        void begin(byte mode, boolean xosc = true);
         
         /*
         * Description: 
@@ -637,10 +638,12 @@ class Si4735
         * Description:
         *   Sets the Mode of the radio.
         * Parameters:
-        *   mode - the new mode of operation (see SI4735_MODE_*).
+        *   mode      - the new mode of operation (see SI4735_MODE_*).
         *   powerdown - power the chip down first, as required by datasheet.
+        *   xosc      - an external 32768Hz oscillator is present.
         */
-        void setMode(byte mode, boolean powerdown = true);
+        void setMode(byte mode, boolean powerdown = true, 
+                     boolean xosc = true);
 
         /*
         * Description:
