@@ -23,14 +23,12 @@ See the example sketches to learn how to use the library in your code.
 HARDWARE NOTES:
  * The Si4735 is a 3.3V I/O chip whereas the Arduino Uno/Mega are 5V I/O. This
    means you will need to use logic level shifters if you are trying to use
-   the Breakout Board version with the latter. If you're using the Shield (or
-   the Breakout Board with the 3.3V Arduino Pro Minis), this has already been
-   taken care of for you.
-   However, a design bug survived in the Shield and you will need a makeshift
-   level converter in the form of a diode to make things work with an Arduino
-   Uno/Mega, details here: http://wiki.wsartori.com/wiki/Trunet_Radio
- * If you're using the Breakout Board, you should connect a 32768Hz oscillator
-   to the RCLK and DCLK pins since the code assumes that is the case. See the
+   the Breakout Board version with the latter. 
+   If you're using the Shield, you should be ok save for a few fatal design
+   mistakes SparkFun introduced. There are various hacks around to work around
+   those, my personal recommendation is that you go for a real level shifter.
+ * If you're using the Breakout Board, make sure you tell the code whether or
+   not you connected a 32768Hz oscillator to the RCLK and DCLK pins. See the
    schematic for the Shield for reference.
  * Quick connection reference:
    SPI Mode, Si4735 -> Arduino:
