@@ -306,10 +306,6 @@ Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,
     }
 }
 
-Si4735::~Si4735() {
-    end(true);
-}
-
 void Si4735::begin(byte mode, boolean xosc){
     //Start by resetting the Si4735 and configuring the communication protocol
     if(_pinPower != SI4735_PIN_POWER_HW) pinMode(_pinPower, OUTPUT);

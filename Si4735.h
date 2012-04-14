@@ -426,7 +426,7 @@ class Si4735
         * Description:
         *   This is the destructor, it shuts the Si4735 down
         */
-        ~Si4735();
+        ~Si4735() { end(true) };
         
         /*
         * Description: 
