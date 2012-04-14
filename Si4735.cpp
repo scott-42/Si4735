@@ -593,10 +593,6 @@ boolean Si4735::readRDSBlock(word* block){
     return true;
 }
 
-boolean Si4735::isRDSCapable(void){
-    return _haverds;
-}
-
 void Si4735::getRSQ(Si4735_RX_Metrics* RSQ){
     switch(_mode){
         case SI4735_MODE_FM:            
@@ -645,18 +641,6 @@ boolean Si4735::volumeDown(boolean alsomute){
         if(alsomute) mute();
         return false;
     };
-}
-
-void Si4735::setVolume(byte value){
-    setProperty(SI4735_PROP_RX_VOLUME, word(0x00, constrain(value, 0, 63)));
-}
-
-byte Si4735::getVolume(void){    
-    return lowByte(getProperty(SI4735_PROP_RX_VOLUME));
-}
-
-void Si4735::mute(void){
-    setProperty(SI4735_PROP_RX_HARD_MUTE, word(0x00, 0x03));
 }
 
 void Si4735::unMute(boolean minvol){
@@ -728,9 +712,9 @@ void Si4735::getResponse(byte* response){
             if(j != 3) Serial.print(", ");
             else
                 if(i != 3) Serial.print(",");
-        };
+        }
         Serial.println("");
-    };
+    }
 #endif
 }
 
@@ -808,10 +792,6 @@ void Si4735::setMode(byte mode, boolean powerdown, boolean xosc){
         SI4735_PROP_GPO_IEN, 
         word(0x00, ((_mode == SI4735_MODE_FM) ? SI4735_FLG_RDSIEN : 0x00) | 
              SI4735_FLG_STCIEN));
-}
-
-byte Si4735::getMode(void){
-    return _mode;
 }
 
 void Si4735::setProperty(word property, word value){

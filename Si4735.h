@@ -538,7 +538,7 @@ class Si4735
         *   Returns true if at least one RDS group has been received while
         *   tuned into the current station.
         */
-        boolean isRDSCapable(void);
+        boolean isRDSCapable(void) { return _haverds };
 
         /*
         * Description:
@@ -551,13 +551,18 @@ class Si4735
         * Description:
         *   Sets the volume. Valid values are [0-63]. 
         */
-        void setVolume(byte value);
+        void setVolume(byte value) {
+            setProperty(SI4735_PROP_RX_VOLUME, 
+                        word(0x00, constrain(value, 0, 63)))
+        };
 
         /*
         * Description:
         *   Gets the current volume.
         */
-        byte getVolume(void);
+        byte getVolume(void) {
+            return lowByte(getProperty(SI4735_PROP_RX_VOLUME))
+        };
 
         /*
         * Description:
@@ -582,7 +587,9 @@ class Si4735
         * Description:
         *   Mutes the audio output.
         */
-        void mute(void);
+        void mute(void) {
+            setProperty(SI4735_PROP_RX_HARD_MUTE, word(0x00, 0x03))
+        };
 
         /*
         * Description:
@@ -632,7 +639,7 @@ class Si4735
         * Description:
         *   Gets the current mode of the radio (see SI4735_MODE_*).
         */
-        byte getMode(void);
+        byte getMode(void) { return _mode };
 
         /*
         * Description:
