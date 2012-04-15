@@ -677,7 +677,6 @@ class Si4735
              _pinSEN;
         byte _mode, _response[16], _i2caddr;
         bool _haverds;
-        Si4735_RX_Metrics _rsqm;
         
         /*
         * Description:
