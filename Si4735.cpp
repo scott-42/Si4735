@@ -164,7 +164,7 @@ void Si4735RDSDecoder::getRDSData(Si4735_RDS_Data* rdsdata){
     *rdsdata = _status;
 }
 
-boolean Si4735RDSDecoder::getRDSTime(Si4735_RDS_Time* rdstime){
+bool Si4735RDSDecoder::getRDSTime(Si4735_RDS_Time* rdstime){
     if(_havect && rdstime) *rdstime = _time;
 
     return _havect;
@@ -306,7 +306,7 @@ Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,
     }
 }
 
-void Si4735::begin(byte mode, boolean xosc){
+void Si4735::begin(byte mode, bool xosc){
     //Start by resetting the Si4735 and configuring the communication protocol
     if(_pinPower != SI4735_PIN_POWER_HW) pinMode(_pinPower, OUTPUT);
     pinMode(_pinReset, OUTPUT);
@@ -497,7 +497,7 @@ byte Si4735::getRevision(char* FW, char* CMP, char* REV, word* patch){
     return _response[1];
 }
 
-word Si4735::getFrequency(boolean* valid){
+word Si4735::getFrequency(bool* valid){
     word frequency;
     
     switch(_mode){
@@ -517,7 +517,7 @@ word Si4735::getFrequency(boolean* valid){
     return frequency;
 }
 
-void Si4735::seekUp(boolean wrap){
+void Si4735::seekUp(bool wrap){
     switch(_mode){
         case SI4735_MODE_FM:
             sendCommand(SI4735_CMD_FM_SEEK_START, 
@@ -537,7 +537,7 @@ void Si4735::seekUp(boolean wrap){
     if(_mode == SI4735_MODE_FM) enableRDS();
 }
 
-void Si4735::seekDown(boolean wrap){
+void Si4735::seekDown(bool wrap){
     switch(_mode){
         case SI4735_MODE_FM:
             sendCommand(SI4735_CMD_FM_SEEK_START, 
@@ -574,7 +574,7 @@ void Si4735::setSeekThresholds(byte SNR, byte RSSI){
     }
 }
 
-boolean Si4735::readRDSBlock(word* block){
+bool Si4735::readRDSBlock(word* block){
     //See if there's anything for us to do
     if(!(_mode == SI4735_MODE_FM && (getStatus() & SI4735_STATUS_RDSINT)))
         return false;
@@ -620,7 +620,7 @@ void Si4735::getRSQ(Si4735_RX_Metrics* RSQ){
     *RSQ = _rsqm;
 }
 
-boolean Si4735::volumeUp(void){
+bool Si4735::volumeUp(void){
     byte volume;
 
     volume = getVolume();
@@ -630,7 +630,7 @@ boolean Si4735::volumeUp(void){
     } else return false;
 }
 
-boolean Si4735::volumeDown(boolean alsomute){
+bool Si4735::volumeDown(bool alsomute){
     byte volume;
 
     volume = getVolume();
@@ -643,7 +643,7 @@ boolean Si4735::volumeDown(boolean alsomute){
     };
 }
 
-void Si4735::unMute(boolean minvol){
+void Si4735::unMute(bool minvol){
     if(minvol) setVolume(0);
     setProperty(SI4735_PROP_RX_HARD_MUTE, word(0x00, 0x00));
 }
@@ -718,7 +718,7 @@ void Si4735::getResponse(byte* response){
 #endif
 }
 
-void Si4735::end(boolean hardoff){
+void Si4735::end(bool hardoff){
     sendCommand(SI4735_CMD_POWER_DOWN);
     if(hardoff) {
         //datasheet calls for 10ns, Arduino can only go as low as 3us
@@ -744,7 +744,7 @@ void Si4735::setDeemphasis(byte deemph){
     }
 }
 
-void Si4735::setMode(byte mode, boolean powerdown, boolean xosc){
+void Si4735::setMode(byte mode, bool powerdown, bool xosc){
     if(powerdown) end(false);
     _mode = mode;
     

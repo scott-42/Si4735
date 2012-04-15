@@ -18,6 +18,10 @@
 #ifndef _SI4735_H_INCLUDED
 #define _SI4735_H_INCLUDED
 
+/* linking with Wire causes widespread pointer corruption, disabling while
+   this is thorougly investigated (I see another refactor coming up) */
+#define SI4735_NOI2C
+
 #if defined(ARDUINO) && ARDUINO >= 100
 # include <Arduino.h>  
 #else
@@ -259,7 +263,7 @@
 //the Si4735 datasheet for a detailed explanation of each member.
 typedef struct {
     byte STBLEND;
-    boolean PILOT;
+    bool PILOT;
     byte RSSI;
     byte SNR;
     byte MULT;
@@ -285,7 +289,7 @@ typedef struct {
 typedef struct {
     //PI is already taken :-(
     word programIdentifier;
-    boolean TP, TA, MS;
+    bool TP, TA, MS;
     byte PTY, DICC;    
     char programService[9];
     char programTypeName[9];
@@ -324,7 +328,7 @@ class Si4735RDSDecoder
         *             CT information, ignore if only interested in CT
         *             availability and not actual value.
         */
-        boolean getRDSTime(Si4735_RDS_Time* rdstime = NULL);
+        bool getRDSTime(Si4735_RDS_Time* rdstime = NULL);
         
         /*
         * Description:
@@ -343,7 +347,7 @@ class Si4735RDSDecoder
     private:
         Si4735_RDS_Data _status;
         Si4735_RDS_Time _time;
-        boolean _rdstextab, _rdsptynab, _havect;
+        bool _rdstextab, _rdsptynab, _havect;
 #if defined(SI4735_DEBUG)
         word _rdsstats[32];
 #endif
@@ -442,7 +446,7 @@ class Si4735
         *   mode - The desired radio mode, one of the SI4735_MODE_* constants.
         *   xosc - A 32768Hz external oscillator is present.
         */
-        void begin(byte mode, boolean xosc = true);
+        void begin(byte mode, bool xosc = true);
         
         /*
         * Description: 
@@ -491,7 +495,7 @@ class Si4735
         *           FM_SEEK_TUNE_* properties in the datasheet) signal on this
         *           frequency. Omit if you don't care.
         */
-        word getFrequency(boolean* valid = NULL);
+        word getFrequency(bool* valid = NULL);
 
         /*
         * Description:
@@ -500,7 +504,7 @@ class Si4735
         *   wrap - set to true to allow the seek to wrap around the current
         *          band.
         */
-        void seekUp(boolean wrap = true);
+        void seekUp(bool wrap = true);
 
         /*
         * Description:
@@ -509,7 +513,7 @@ class Si4735
         *   wrap - set to true to allow the seek to wrap around the current
         *          band.
         */
-        void seekDown(boolean wrap = true);
+        void seekDown(bool wrap = true);
         
         /*
         * Description:
@@ -531,14 +535,14 @@ class Si4735
         *   This function needs to be actively called (e.g. from loop()) in
         *   order to see sensible information.
         */
-        boolean readRDSBlock(word* block);
+        bool readRDSBlock(word* block);
 
         /*
         * Description:
         *   Returns true if at least one RDS group has been received while
         *   tuned into the current station.
         */
-        boolean isRDSCapable(void) { return _haverds; };
+        bool isRDSCapable(void) { return _haverds; };
 
         /*
         * Description:
@@ -570,7 +574,7 @@ class Si4735
         *   reached, no further increase will take place and returns false;
         *   otherwise true.
         */
-        boolean volumeUp(void);
+        bool volumeUp(void);
         
         /*
         * Description:
@@ -581,7 +585,7 @@ class Si4735
         *   alsomute - mute the output when reaching minimum volume, in 
         *               addition to returning false
         */
-        boolean volumeDown(boolean alsomute = false);
+        bool volumeDown(bool alsomute = false);
         
         /*
         * Description:
@@ -599,7 +603,7 @@ class Si4735
         *            otherwise leave it untouched causing the chip to blast
         *            audio out at whatever the previous volume level was.
         */
-        void unMute(boolean minvol = false);
+        void unMute(bool minvol = false);
 
         /*
         * Description:
@@ -627,7 +631,7 @@ class Si4735
         *   hardoff - physically power down the chip if fed off a digital pin,
         *             otherwise just send SI4735_CMD_POWER_DOWN.
         */
-        void end(boolean hardoff = false);
+        void end(bool hardoff = false);
 
         /*
         * Description:
@@ -649,8 +653,8 @@ class Si4735
         *   powerdown - power the chip down first, as required by datasheet.
         *   xosc      - an external 32768Hz oscillator is present.
         */
-        void setMode(byte mode, boolean powerdown = true, 
-                     boolean xosc = true);
+        void setMode(byte mode, bool powerdown = true, 
+                     bool xosc = true);
 
         /*
         * Description:
@@ -672,7 +676,7 @@ class Si4735
         byte _pinPower, _pinReset, _pinGPO2, _pinSDIO, _pinGPO1, _pinSCLK,
              _pinSEN;
         byte _mode, _response[16], _i2caddr;
-        boolean _haverds;
+        bool _haverds;
         Si4735_RX_Metrics _rsqm;
         
         /*

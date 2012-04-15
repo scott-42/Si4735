@@ -68,7 +68,7 @@ Si4735RDSDecoder decoder;
 char command;
 byte mode, status;
 word frequency, rdsblock[4];
-boolean goodtune = false;
+bool goodtune = false;
 Si4735_RX_Metrics RSQ;
 Si4735_RDS_Data station;
 Si4735_RDS_Time rdstime;
