@@ -443,10 +443,15 @@ class Si4735
         *     SW - 2.3 to 23 MHz
         *     FM - 87.5 to 107.9 MHz
         * Parameters:
-        *   mode - The desired radio mode, one of the SI4735_MODE_* constants.
-        *   xosc - A 32768Hz external oscillator is present.
+        *   mode        - The desired radio mode, one of the SI4735_MODE_*
+        *                 constants.
+        *   xosc        - A 32768Hz external oscillator is present.
+        *   slowshifter - A BOB-08745 is used for level shifting between an
+        *                 Uno/Mega and the Si4735. Use a 3.3V I/O Arduino or
+        *                 shift through a BOB-10403 to be able to go up to
+        *                 1MHz by setting this to false.
         */
-        void begin(byte mode, bool xosc = true);
+        void begin(byte mode, bool xosc = true, bool slowshifter = true);
         
         /*
         * Description: 

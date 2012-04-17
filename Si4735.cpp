@@ -305,7 +305,7 @@ Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,
     }
 }
 
-void Si4735::begin(byte mode, bool xosc){
+void Si4735::begin(byte mode, bool xosc, bool slowshifter){
     //Start by resetting the Si4735 and configuring the communication protocol
     if(_pinPower != SI4735_PIN_POWER_HW) pinMode(_pinPower, OUTPUT);
     pinMode(_pinReset, OUTPUT);
@@ -357,8 +357,9 @@ void Si4735::begin(byte mode, bool xosc){
 #if !defined(SI4735_NOSPI)
         //Configure the SPI hardware
         SPI.begin();
-        //Datahseet says Si4735 can't do more than 2.5MHz on SPI
-        SPI.setClockDivider(SPI_CLOCK_DIV8);
+        //Datahseet says Si4735 can't do more than 2.5MHz on SPI and if you're
+        //level shifting through a BOB-08745, you can't do more than 250kHz 
+        SPI.setClockDivider((slowshifter ? SPI_CLOCK_DIV64 : SPI_CLOCK_DIV8));
         //SCLK idle LOW, SDIO sampled on RISING edge
         SPI.setDataMode(SPI_MODE0);
         //Datasheet says Si4735 is big endian (MSB first)
