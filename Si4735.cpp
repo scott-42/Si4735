@@ -206,6 +206,7 @@ void Si4735RDSDecoder::dumpRDSStats(void){
         Serial.print(": ");
         Serial.println(_rdsstats[i]);
     }
+    Serial.flush();
 }
 #endif
 
@@ -412,6 +413,7 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
     Serial.print(" [");
     Serial.print(arg7, BIN);
     Serial.println("])");
+    Serial.flush();
 #endif
 
     if(!_i2caddr) {
@@ -713,6 +715,7 @@ void Si4735::getResponse(byte* response){
         }
         Serial.println("");
     }
+    Serial.flush();
 #endif
 }
 

@@ -63,6 +63,7 @@
 
 //Create an instance of the Si4735 named radio.
 Si4735 radio;
+//Other variables we will use below
 byte response[16], status, command[8], numDigits;
 char collectedDigits[17] = "", currentDigit, oneHexValue[5] = "0x";
 
@@ -103,6 +104,7 @@ void loop()
           };
           Serial.println("");
         };
+        Serial.flush();        
         break;
       case 'S':
         status = radio.getStatus();
@@ -111,10 +113,12 @@ void loop()
         Serial.print(" [");
         Serial.print(status, BIN);
         Serial.println("]");
+        Serial.flush();        
         break;
       case 'X':
         collectedDigits[0] = '\0';
         Serial.println("Command string truncated, start over.");
+        Serial.flush();        
         break;
       //If we get a LF or CR character, send the command to the radio.
       case '\n':
@@ -135,7 +139,8 @@ void loop()
                               command[3], command[4], command[5],
                               command[6], command[7]);
           } else Serial.println("Odd number of hex digits, need even!");
-        } 
+        }
+        Serial.flush();
         break;
       case '?':
         Serial.println("Available commands:");
@@ -146,6 +151,7 @@ void loop()
         Serial.println("           command) are accepted");
         Serial.println("* CR/LF  - send command");
         Serial.println("* ?      - display this list");
+        Serial.flush();        
         break;
       //If we get any other character and it's a valid hexidecimal character,
       //copy it to the command string.
@@ -158,6 +164,7 @@ void loop()
             Serial.print(currentDigit);
           } else Serial.println("Too many hex digits, 16 maximum!");
         else Serial.println("Invalid command!");
+        Serial.flush();
         break;
     }
   }   

@@ -62,9 +62,11 @@
 //Add the Si4735 Library to the sketch.
 #include <Si4735.h>
 
-//Create an instance of the Si4735 named radio.
+//Create an instance of the Si4735 named radio
 Si4735 radio;
+//... and an RDS decoder to go with it.
 Si4735RDSDecoder decoder;
+//Other variables we will use below
 char command;
 byte mode, status;
 word frequency, rdsblock[4];
@@ -101,26 +103,32 @@ void loop()
       case 'v': 
         if(radio.volumeDown()) Serial.println("Volume decreased");
         else Serial.println("ERROR: already at minimum volume");
+        Serial.flush();
         break;
       case 'V':
         if(radio.volumeUp()) Serial.println("Volume increased");
         else Serial.println("ERROR: already at maximum volume");
+        Serial.flush();
         break;
       case 's': 
         Serial.println("Seeking down with band wrap-around");
+        Serial.flush();
         radio.seekDown();
         break;
       case 'S': 
         Serial.println("Seeking up with band wrap-around");
+        Serial.flush();
         radio.seekUp();
         break;
       case 'm': 
         radio.mute();
         Serial.println("Audio muted");
+        Serial.flush();
         break;
       case 'M': 
         radio.unMute();
         Serial.println("Audio unmuted");
+        Serial.flush();
         break;
       case 'f': 
         frequency = radio.getFrequency(&goodtune);
@@ -147,6 +155,7 @@ void loop()
             break;
         }
         if(goodtune) Serial.println("* Valid tune");
+        Serial.flush();        
         break;
       case 'L':
       case 'A':
@@ -171,6 +180,7 @@ void loop()
             radio.setMode(SI4735_MODE_FM);
             break;
         }
+        Serial.flush();        
         break;
       case 'q': 
         radio.getRSQ(&RSQ);
@@ -188,6 +198,7 @@ void loop()
           Serial.println("kHz");
         }
         Serial.println("}");
+        Serial.flush();        
         break;
       case 't':
         radio.sendCommand(SI4735_CMD_GET_INT_STATUS);
@@ -203,12 +214,14 @@ void loop()
         if(status & SI4735_STATUS_STCINT)
           Serial.println("* Seek/Tune Complete interrupt");
         Serial.println("}");
+        Serial.flush();        
         break;
       case 'r': 
         radio.getRevision(FW, NULL, &REV);
         Serial.print("This is a Si4735-");
         Serial.print(REV);
         Serial.println(FW);
+        Serial.flush();        
         break;
       case 'R': 
         if(radio.isRDSCapable()) {
@@ -241,6 +254,7 @@ void loop()
           Serial.println(station.radioText);
           Serial.println("}");
         } else Serial.println("RDS not available.");
+        Serial.flush();        
         break;
       case 'T': 
         if(decoder.getRDSTime(&rdstime)) {
@@ -255,6 +269,7 @@ void loop()
           Serial.print("-");
           Serial.println(rdstime.tm_mday);
         } else Serial.println("RDS CT not available.");
+        Serial.flush();        
         break;
       case '?': 
         Serial.println("Available commands:");
@@ -269,6 +284,7 @@ void loop()
         Serial.println("* R       - display RDS data, if available");
         Serial.println("* T       - display RDS time, if available");
         Serial.println("* ?       - display this list");
+        Serial.flush();        
         break;
     }
   }   
