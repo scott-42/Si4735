@@ -128,7 +128,7 @@ void loop()
         if(numDigits) {
           if(numDigits % 2){    
             memset(command, 0x00, 8);
-            for(int i = 0; i++; i < (numDigits / 2)) {
+            for(int i = 0; i < (numDigits / 2) ; i++) {
               strncpy(&oneHexValue[2], &collectedDigits[i * 2], 2);
               command[i] = strtoul(oneHexValue, NULL, 16);
             }
