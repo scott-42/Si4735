@@ -250,7 +250,7 @@ const char Si4735_PTY2Text_S_Personality[] PROGMEM = "Personality";
 const char Si4735_PTY2Text_S_Public[] PROGMEM = "Public";
 const char Si4735_PTY2Text_S_College[] PROGMEM = "College";
 
-const char * Si4735_PTY2Text_EU[32] PROGMEM = {
+const char * const Si4735_PTY2Text_EU[32] PROGMEM = {
     Si4735_PTY2Text_S_None, 
     Si4735_PTY2Text_S_News,
     Si4735_PTY2Text_S_Current,
@@ -283,7 +283,7 @@ const char * Si4735_PTY2Text_EU[32] PROGMEM = {
     Si4735_PTY2Text_S_Documentary,
     Si4735_PTY2Text_S_EmergencyTest,
     Si4735_PTY2Text_S_Emergency};
-const char * Si4735_PTY2Text_US[32] PROGMEM = {
+const char * const Si4735_PTY2Text_US[32] PROGMEM = {
     Si4735_PTY2Text_S_None, 
     Si4735_PTY2Text_S_News,
     Si4735_PTY2Text_S_Information,
