@@ -88,9 +88,9 @@ void loop()
         //Get the latest response from the radio.
         radio.getResponse(response);
         //Print all 16 bytes in the response to the terminal.      
-        Serial.print("Si4735 RSP");
+        Serial.print(F("Si4735 RSP"));
         for(int i = 0; i < 4; i++) {
-          if(i) Serial.print("           ");
+          if(i) Serial.print(F("           "));
           else Serial.print(" ");
           for(int j = 0; j < 4; j++) {
             Serial.print("0x");
@@ -108,7 +108,7 @@ void loop()
         break;
       case 'S':
         status = radio.getStatus();
-        Serial.print("Si4735 STS 0x");
+        Serial.print(F("Si4735 STS 0x"));
         Serial.print(status, HEX);
         Serial.print(" [");
         Serial.print(status, BIN);
@@ -117,7 +117,7 @@ void loop()
         break;
       case 'X':
         collectedDigits[0] = '\0';
-        Serial.println("Command string truncated, start over.");
+        Serial.println(F("Command string truncated, start over."));
         Serial.flush();        
         break;
       //If we get a LF or CR character, send the command to the radio.
@@ -138,20 +138,20 @@ void loop()
             radio.sendCommand(command[0], command[1], command[2],
                               command[3], command[4], command[5],
                               command[6], command[7]);
-          } else Serial.println("Odd number of hex digits, need even!");
+          } else Serial.println(F("Odd number of hex digits, need even!"));
         }
         Serial.flush();
         break;
       case '?':
-        Serial.println("Available commands:");
-        Serial.println("* r      - display response (long read)");
-        Serial.println("* s      - display status (short read)");
-        Serial.println("* x      - flush (empty) command string and start over");
-        Serial.println("* 0-9a-f - compose command, at most 16 hex digits (forming an 8 byte");
-        Serial.println("           command) are accepted");
-        Serial.println("* CR/LF  - send command");
-        Serial.println("* ?      - display this list");
-        Serial.flush();        
+        Serial.println(F("Available commands:"));
+        Serial.println(F("* r      - display response (long read)"));
+        Serial.println(F("* s      - display status (short read)"));
+        Serial.println(F("* x      - flush (empty) command string and start over"));
+        Serial.println(F("* 0-9a-f - compose command, at most 16 hex digits (forming an 8 byte"));
+        Serial.println(F("           command) are accepted"));
+        Serial.println(F("* CR/LF  - send command"));
+        Serial.println(F("* ?      - display this list"));
+        Serial.flush();
         break;
       //If we get any other character and it's a valid hexidecimal character,
       //copy it to the command string.
@@ -162,8 +162,8 @@ void loop()
             strncat(collectedDigits, &currentDigit, 1);
             //Echo the command string as it is composed
             Serial.print(currentDigit);
-          } else Serial.println("Too many hex digits, 16 maximum!");
-        else Serial.println("Invalid command!");
+          } else Serial.println(F("Too many hex digits, 16 maximum!"));
+        else Serial.println(F("Invalid command!"));
         Serial.flush();
         break;
     }

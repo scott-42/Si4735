@@ -210,57 +210,144 @@ void Si4735RDSDecoder::dumpRDSStats(void){
 }
 #endif
 
+const char Si4735_PTY2Text_S_None[] PROGMEM = "None/Undefined";
+const char Si4735_PTY2Text_S_News[] PROGMEM = "News";
+const char Si4735_PTY2Text_S_Current[] PROGMEM = "Current affairs";
+const char Si4735_PTY2Text_S_Information[] PROGMEM = "Information";
+const char Si4735_PTY2Text_S_Sports[] PROGMEM = "Sports";
+const char Si4735_PTY2Text_S_Education[] PROGMEM = "Education";
+const char Si4735_PTY2Text_S_Drama[] PROGMEM = "Drama";
+const char Si4735_PTY2Text_S_Culture[] PROGMEM = "Culture";
+const char Si4735_PTY2Text_S_Science[] PROGMEM = "Science";
+const char Si4735_PTY2Text_S_Varied[] PROGMEM = "Varied";
+const char Si4735_PTY2Text_S_Pop[] PROGMEM = "Pop";
+const char Si4735_PTY2Text_S_Rock[] PROGMEM = "Rock";
+const char Si4735_PTY2Text_S_EasySoft[] PROGMEM = "Easy & soft";
+const char Si4735_PTY2Text_S_Classical[] PROGMEM = "Classical";
+const char Si4735_PTY2Text_S_Other[] PROGMEM = "Other music";
+const char Si4735_PTY2Text_S_Weather[] PROGMEM = "Weather";
+const char Si4735_PTY2Text_S_Finance[] PROGMEM = "Finance";
+const char Si4735_PTY2Text_S_Children[] PROGMEM = "Children's";
+const char Si4735_PTY2Text_S_Social[] PROGMEM = "Social affairs";
+const char Si4735_PTY2Text_S_Religion[] PROGMEM = "Religion";
+const char Si4735_PTY2Text_S_TalkPhone[] PROGMEM = "Talk & phone-in";
+const char Si4735_PTY2Text_S_Travel[] PROGMEM = "Travel";
+const char Si4735_PTY2Text_S_Leisure[] PROGMEM = "Leisure";
+const char Si4735_PTY2Text_S_Jazz[] PROGMEM = "Jazz";
+const char Si4735_PTY2Text_S_Country[] PROGMEM = "Country";
+const char Si4735_PTY2Text_S_National[] PROGMEM = "National";
+const char Si4735_PTY2Text_S_Oldies[] PROGMEM = "Oldies";
+const char Si4735_PTY2Text_S_Folk[] PROGMEM = "Folk";
+const char Si4735_PTY2Text_S_Documentary[] PROGMEM = "Documentary";
+const char Si4735_PTY2Text_S_EmergencyTest[] PROGMEM = "Emergency test";
+const char Si4735_PTY2Text_S_Emergency[] PROGMEM = "Emergency";
+const char Si4735_PTY2Text_S_Adult[] PROGMEM = "Adult hits";
+const char Si4735_PTY2Text_S_Top40[] PROGMEM = "Top 40";
+const char Si4735_PTY2Text_S_Nostalgia[] PROGMEM = "Nostalgia";
+const char Si4735_PTY2Text_S_RnB[] PROGMEM = "Rhythm and blues";
+const char Si4735_PTY2Text_S_Language[] PROGMEM = "Language";
+const char Si4735_PTY2Text_S_Personality[] PROGMEM = "Personality";
+const char Si4735_PTY2Text_S_Public[] PROGMEM = "Public";
+const char Si4735_PTY2Text_S_College[] PROGMEM = "College";
+
+const char * Si4735_PTY2Text_EU[32] PROGMEM = {
+    Si4735_PTY2Text_S_None, 
+    Si4735_PTY2Text_S_News,
+    Si4735_PTY2Text_S_Current,
+    Si4735_PTY2Text_S_Information,
+    Si4735_PTY2Text_S_Sports,
+    Si4735_PTY2Text_S_Education, 
+    Si4735_PTY2Text_S_Drama,
+    Si4735_PTY2Text_S_Culture,
+    Si4735_PTY2Text_S_Science,
+    Si4735_PTY2Text_S_Varied,
+    Si4735_PTY2Text_S_Pop,
+    Si4735_PTY2Text_S_Rock,
+    Si4735_PTY2Text_S_EasySoft,
+    Si4735_PTY2Text_S_Classical,
+    Si4735_PTY2Text_S_Classical,
+    Si4735_PTY2Text_S_Other,
+    Si4735_PTY2Text_S_Weather, 
+    Si4735_PTY2Text_S_Finance,
+    Si4735_PTY2Text_S_Children,
+    Si4735_PTY2Text_S_Social,
+    Si4735_PTY2Text_S_Religion, 
+    Si4735_PTY2Text_S_TalkPhone,
+    Si4735_PTY2Text_S_Travel,
+    Si4735_PTY2Text_S_Leisure,
+    Si4735_PTY2Text_S_Jazz,
+    Si4735_PTY2Text_S_Country,
+    Si4735_PTY2Text_S_National,
+    Si4735_PTY2Text_S_Oldies,
+    Si4735_PTY2Text_S_Folk,
+    Si4735_PTY2Text_S_Documentary,
+    Si4735_PTY2Text_S_EmergencyTest,
+    Si4735_PTY2Text_S_Emergency};
+const char * Si4735_PTY2Text_US[32] PROGMEM = {
+    Si4735_PTY2Text_S_None, 
+    Si4735_PTY2Text_S_News,
+    Si4735_PTY2Text_S_Information,
+    Si4735_PTY2Text_S_Sports,
+    Si4735_PTY2Text_S_TalkPhone,
+    Si4735_PTY2Text_S_Rock,
+    Si4735_PTY2Text_S_Rock,
+    Si4735_PTY2Text_S_Adult, 
+    Si4735_PTY2Text_S_Rock,
+    Si4735_PTY2Text_S_Top40,
+    Si4735_PTY2Text_S_Country,
+    Si4735_PTY2Text_S_Oldies,
+    Si4735_PTY2Text_S_EasySoft,
+    Si4735_PTY2Text_S_Nostalgia,
+    Si4735_PTY2Text_S_Jazz, 
+    Si4735_PTY2Text_S_Classical, 
+    Si4735_PTY2Text_S_RnB,
+    Si4735_PTY2Text_S_RnB,
+    Si4735_PTY2Text_S_Language,
+    Si4735_PTY2Text_S_Religion, 
+    Si4735_PTY2Text_S_Religion,
+    Si4735_PTY2Text_S_Personality,
+    Si4735_PTY2Text_S_Public,
+    Si4735_PTY2Text_S_College,
+    Si4735_PTY2Text_S_None,
+    Si4735_PTY2Text_S_None,
+    Si4735_PTY2Text_S_None,
+    Si4735_PTY2Text_S_None,
+    Si4735_PTY2Text_S_None, 
+    Si4735_PTY2Text_S_Weather,
+    Si4735_PTY2Text_S_EmergencyTest, 
+    Si4735_PTY2Text_S_Emergency};
+
+const byte Si4735_PTY_EU2US[32] PROGMEM = {0, 1, 0, 2, 3, 23, 0, 0, 0, 0, 7,
+                                           5, 12, 15, 15, 0, 29, 0, 0, 0, 20,
+                                           4, 0, 0, 14, 10, 0, 11, 0, 0, 30,
+                                           31};
+const byte Si4735_PTY_US2EU[32] PROGMEM = {0, 1, 3, 4, 21, 11, 11, 10, 11, 10,
+                                           25, 27, 12, 27, 24, 14, 15, 15, 0,
+                                           20, 20, 0, 0, 5, 0, 0, 0, 0, 0, 16,
+                                           30, 31};
+
 void Si4735Translate::getTextForPTY(byte PTY, byte locale, char* text,
                                     byte textsize){
-    const char* _PTY2Text_EU[32] = {"None/Undefined", "News",
-                                    "Current affairs", "Information", "Sport",
-                                    "Education", "Drama", "Culture",
-                                    "Science", "Varied", "Pop music",
-                                    "Rock music", "Easy listening",
-                                    "Light classical", "Serious classical",
-                                    "Other music", "Weather", "Finance",
-                                    "Children's programmes", "Social affairs",
-                                    "Religion", "Phone-in", "Travel",
-                                    "Leisure", "Jazz music", "Country music",
-                                    "National music", "Oldies music",
-                                    "Fold music", "Documentary", "Alarm test",
-                                    "Alarm"};
-    const char* _PTY2Text_US[32] = {"None/Undefined", "News", "Information",
-                                    "Sports", "Talk", "Rock", "Classic rock",
-                                    "Adult hits", "Soft rock", "Top 40",
-                                    "Country", "Oldies", "Soft", "Nostalgia",
-                                    "Jazz", "Classical", "Rhythm and blues",
-                                    "Soft rhythm and blues", "Language",
-                                    "Religious music", "Religious talk",
-                                    "Personality", "Public", "College",
-                                    "Unassigned", "Unassigned", "Unassigned",
-                                    "Unassigned", "Unassigned", "Weather",
-                                    "Emergency test", "Emergency"};
-
     switch(locale){
         case SI4735_LOCALE_US:
-            strncpy(text, _PTY2Text_US[PTY], textsize);
+            strncpy_P(text, (PGM_P)(pgm_read_word(&Si4735_PTY2Text_US[PTY])),
+                      textsize);
             break;
         case SI4735_LOCALE_EU:
-            strncpy(text, _PTY2Text_EU[PTY], textsize);
+            strncpy_P(text, (PGM_P)(pgm_read_word(&Si4735_PTY2Text_EU[PTY])),
+                    textsize);
             break;
     }
 }
 
 byte Si4735Translate::translatePTY(byte PTY, byte fromlocale, byte tolocale){
-    const byte _PTY_EU2US[32] = {0, 1, 0, 2, 3, 23, 0, 0, 0, 0, 7, 5, 12, 15,
-                                 15, 0, 29, 0, 0, 0, 20, 4, 0, 0, 14, 10, 0,
-                                 11, 0, 0, 30, 31};
-    const byte _PTY_US2EU[32] = {0, 1, 3, 4, 21, 11, 11, 10, 11, 10, 25, 27,
-                                 12, 27, 24, 14, 15, 15, 0, 20, 20, 0, 0, 5,
-                                 0, 0, 0, 0, 0, 16, 30, 31};
     if(fromlocale == tolocale) return PTY;
     else switch(fromlocale){
         case SI4735_LOCALE_US:
-            return _PTY_US2EU[PTY];
+            return pgm_read_byte(&Si4735_PTY_US2EU[PTY]);
             break;
         case SI4735_LOCALE_EU:
-            return _PTY_EU2US[PTY];
+            return pgm_read_byte(&Si4735_PTY_EU2US[PTY]);
             break;
     }
     
